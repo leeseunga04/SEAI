@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>병의원 운영 현황</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1a2744;
+    --navy2: #243057;
+    --blue: #2563eb;
+    --blue-light: #eff6ff;
+    --green: #16a34a;
+    --red: #dc2626;
+    --gray1: #f8fafc;
+    --gray2: #f1f5f9;
+    --gray3: #e2e8f0;
+    --gray4: #cbd5e1;
+    --gray5: #94a3b8;
+    --gray6: #64748b;
+    --gray7: #334155;
+    --gray8: #1e293b;
+    --text: #0f172a;
+    --white: #ffffff;
+    --tag-blue: #dbeafe; --tag-blue-t: #1d4ed8;
+    --tag-green: #dcfce7; --tag-green-t: #15803d;
+    --tag-purple: #ede9fe; --tag-purple-t: #6d28d9;
+    --tag-orange: #ffedd5; --tag-orange-t: #c2410c;
+    --tag-pink: #fce7f3; --tag-pink-t: #9d174d;
+    --tag-teal: #ccfbf1; --tag-teal-t: #0f766e;
+    --tag-red: #fee2e2; --tag-red-t: #b91c1c;
+  }
+  body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: var(--gray2); color: var(--text); font-size: 13px; min-height: 100vh; }
+
+  /* TOP NAV */
+  .topnav { background: var(--navy); color: #fff; height: 48px; display: flex; align-items: center; padding: 0 16px; gap: 8px; font-size: 13px; position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+  .topnav .logo { font-weight: 700; font-size: 14px; letter-spacing: -0.3px; margin-right: 8px; display: flex; align-items: center; gap: 6px; }
+  .topnav .logo-sub { font-size: 9px; font-weight: 400; line-height: 1.2; opacity: .7; }
+  .topnav .sep { opacity: .3; margin: 0 4px; }
+  .topnav .breadcrumb { display: flex; align-items: center; gap: 4px; opacity: .85; font-size: 12px; }
+  .topnav .breadcrumb span { cursor: pointer; }
+  .topnav .breadcrumb span:hover { text-decoration: underline; }
+  .topnav .user { margin-left: auto; font-size: 12px; opacity: .85; display: flex; align-items: center; gap: 6px; }
+
+  /* SIDEBAR */
+  .sidebar { position: fixed; top: 48px; left: 0; bottom: 0; width: 48px; background: #dde4ef; display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 4px; z-index: 90; border-right: 1px solid #c8d2e4; }
+  .sidebar-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #7a8fae; transition: background .15s, color .15s; }
+  .sidebar-icon:hover, .sidebar-icon.active { background: rgba(37,99,235,.12); color: #2563eb; }
+  .sidebar-icon svg { width: 18px; height: 18px; }
+
+  /* MAIN */
+  .main { margin-top: 48px; margin-left: 48px; padding: 20px 20px 20px; transition: margin-right .3s; }
+  .main.drawer-open { margin-right: 380px; }
+
+  /* PAGE HEADER */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .page-title { font-size: 20px; font-weight: 700; color: var(--gray8); }
+  .page-meta { font-size: 11px; color: var(--gray5); text-align: right; line-height: 1.6; }
+  .page-meta .refresh { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; color: var(--blue); font-size: 11px; margin-bottom: 2px; }
+
+  /* FILTER AREA */
+  .filter-wrap { background: var(--white); border: 1px solid var(--gray3); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+  .filter-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .filter-row + .filter-row { margin-top: 10px; }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .filter-label { font-size: 12px; color: var(--gray6); font-weight: 500; white-space: nowrap; }
+  .filter-select { border: 1px solid var(--gray3); border-radius: 5px; padding: 5px 28px 5px 8px; font-size: 12px; background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat calc(100% - 6px) center; -webkit-appearance: none; appearance: none; cursor: pointer; color: var(--gray7); min-width: 80px; }
+  .filter-select:focus { outline: none; border-color: var(--blue); }
+  .info-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--gray4); color: var(--white); font-size: 10px; font-weight: 700; cursor: pointer; position: relative; }
+  .tooltip { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); background: var(--gray8); color: #fff; font-size: 11px; padding: 6px 10px; border-radius: 5px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 200; }
+  .tooltip::before { content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-bottom-color: var(--gray8); }
+  .info-icon:hover .tooltip { opacity: 1; }
+  .filter-actions { margin-left: auto; display: flex; gap: 6px; }
+  .btn { border: none; border-radius: 5px; padding: 6px 14px; font-size: 12px; cursor: pointer; font-family: inherit; font-weight: 500; transition: background .15s, opacity .15s; }
+  .btn-ghost { background: var(--gray2); color: var(--gray6); }
+  .btn-ghost:hover { background: var(--gray3); }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-outline-red { background: #fff; color: var(--red); border: 1px solid var(--red); }
+  .btn-outline-red:hover { background: #fee2e2; }
+  .filter-row2 { display: flex; gap: 10px; align-items: center; }
+  .search-wrap { position: relative; }
+  .search-wrap svg { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--gray4); width: 14px; height: 14px; }
+  .search-input { border: 1px solid var(--gray3); border-radius: 5px; padding: 5px 8px 5px 28px; font-size: 12px; color: var(--gray7); outline: none; width: 180px; }
+  .search-input:focus { border-color: var(--blue); }
+  .search-input::placeholder { color: var(--gray4); }
+  .download-btn { margin-left: auto; display: flex; align-items: center; gap: 5px; background: var(--gray2); border: 1px solid var(--gray3); border-radius: 5px; padding: 5px 12px; font-size: 12px; color: var(--gray6); cursor: pointer; }
+  .download-btn:hover { background: var(--gray3); }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 12px; align-items: center; font-size: 11px; color: var(--gray6); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* TABLE */
+  .table-wrap { background: var(--white); border: 1px solid var(--gray3); border-radius: 8px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--gray1); }
+  th { padding: 9px 10px; font-size: 11px; font-weight: 600; color: var(--gray6); border-bottom: 1px solid var(--gray3); text-align: left; white-space: nowrap; }
+  th:first-child { width: 36px; }
+  td { padding: 8px 10px; font-size: 12px; color: var(--gray7); border-bottom: 1px solid var(--gray3); white-space: nowrap; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr { cursor: pointer; transition: background .1s; }
+  tbody tr:hover { background: var(--gray1); }
+  tbody tr.selected { background: var(--blue-light); }
+  .cb { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; }
+  .check-col { width: 36px; text-align: center; }
+  .op-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
+  .op-badge.clinic { background: #eff6ff; color: #1d4ed8; }
+  .op-badge.dental { background: #fdf4ff; color: #7c3aed; }
+  .op-badge.hani { background: #ecfdf5; color: #059669; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 3px; }
+  .dot-green { background: #22c55e; }
+  .dot-red { background: #ef4444; }
+  .time-cell { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+  .chip { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 500; margin: 1px; }
+  .chip-blue { background: var(--tag-blue); color: var(--tag-blue-t); }
+  .chip-green { background: var(--tag-green); color: var(--tag-green-t); }
+  .chip-purple { background: var(--tag-purple); color: var(--tag-purple-t); }
+  .chip-orange { background: var(--tag-orange); color: var(--tag-orange-t); }
+  .chip-pink { background: var(--tag-pink); color: var(--tag-pink-t); }
+  .chip-teal { background: var(--tag-teal); color: var(--tag-teal-t); }
+  .chip-red { background: var(--tag-red); color: var(--tag-red-t); }
+  .chip-gray { background: var(--gray2); color: var(--gray6); }
+  .icon-btn { background: none; border: 1px solid var(--gray3); border-radius: 5px; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--gray5); transition: all .15s; }
+  .icon-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+  .detail-icon { width: 14px; height: 14px; }
+
+  /* PAGINATION */
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-top: 1px solid var(--gray3); font-size: 12px; color: var(--gray6); }
+  .page-btns { display: flex; gap: 3px; }
+  .page-btn { width: 28px; height: 28px; border-radius: 5px; border: 1px solid var(--gray3); background: var(--white); color: var(--gray6); font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .page-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .page-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .page-btn svg { width: 12px; height: 12px; }
+
+  /* DRAWER */
+  .drawer { position: fixed; top: 48px; right: 0; bottom: 0; width: 380px; background: var(--white); border-left: 1px solid var(--gray3); transform: translateX(100%); transition: transform .28s cubic-bezier(.4,0,.2,1); z-index: 80; display: flex; flex-direction: column; overflow: hidden; }
+  .drawer.open { transform: translateX(0); }
+  .drawer-header { padding: 14px 16px; border-bottom: 1px solid var(--gray3); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .drawer-close { background: none; border: none; cursor: pointer; color: var(--gray5); display: flex; align-items: center; padding: 4px; border-radius: 4px; }
+  .drawer-close:hover { color: var(--gray7); background: var(--gray2); }
+  .drawer-title { font-size: 16px; font-weight: 700; color: var(--gray8); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 16px; }
+  .drawer-body::-webkit-scrollbar { width: 4px; }
+  .drawer-body::-webkit-scrollbar-thumb { background: var(--gray3); border-radius: 2px; }
+  .drawer-footer { padding: 12px 16px; border-top: 1px solid var(--gray3); display: flex; gap: 8px; flex-shrink: 0; }
+  .drawer-footer .btn { flex: 1; padding: 8px; font-size: 13px; }
+
+  /* DETAIL VIEW */
+  .section-title { font-size: 12px; font-weight: 700; color: var(--gray8); margin-bottom: 8px; margin-top: 16px; }
+  .section-title:first-child { margin-top: 0; }
+  .info-card { background: var(--gray1); border: 1px solid var(--gray3); border-radius: 6px; overflow: hidden; }
+  .info-row { display: flex; align-items: flex-start; padding: 8px 12px; border-bottom: 1px solid var(--gray3); }
+  .info-row:last-child { border-bottom: none; }
+  .info-key { font-size: 12px; color: var(--gray5); width: 80px; flex-shrink: 0; }
+  .info-val { font-size: 12px; color: var(--gray7); text-align: right; flex: 1; }
+  .hours-grid { background: var(--gray1); border: 1px solid var(--gray3); border-radius: 6px; overflow: hidden; }
+  .hours-row { display: flex; align-items: center; padding: 7px 12px; border-bottom: 1px solid var(--gray3); font-size: 12px; }
+  .hours-row:last-child { border-bottom: none; }
+  .hours-day { width: 30px; color: var(--gray6); font-weight: 600; }
+  .hours-val { color: var(--gray7); }
+  .hours-val.closed { color: var(--red); }
+  .chips-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
+  .memo-box { background: var(--gray1); border: 1px solid var(--gray3); border-radius: 6px; padding: 10px 12px; font-size: 12px; color: var(--gray5); min-height: 60px; }
+
+  /* EDIT MODE */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; color: var(--gray6); font-weight: 500; margin-bottom: 5px; display: block; }
+  .form-input { width: 100%; border: 1px solid var(--gray3); border-radius: 5px; padding: 7px 10px; font-size: 13px; font-family: inherit; color: var(--gray7); background: var(--white); outline: none; }
+  .form-input:focus { border-color: var(--blue); }
+  .hours-edit-row { display: flex; align-items: center; gap: 6px; padding: 5px 0; }
+  .hours-check { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; flex-shrink: 0; }
+  .hours-day-label { width: 28px; font-size: 12px; color: var(--gray7); flex-shrink: 0; }
+  .time-input { border: 1px solid var(--gray3); border-radius: 5px; padding: 5px 8px; font-size: 12px; width: 90px; color: var(--gray7); outline: none; font-family: inherit; display: flex; align-items: center; gap: 4px; background: var(--white); }
+  .time-input:focus { border-color: var(--blue); }
+  .time-sep { color: var(--gray5); font-size: 12px; }
+  .tag-input-wrap { border: 1px solid var(--gray3); border-radius: 5px; padding: 6px 8px; display: flex; flex-wrap: wrap; gap: 4px; min-height: 40px; cursor: text; background: var(--white); }
+  .tag-input-wrap:focus-within { border-color: var(--blue); }
+  .tag-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+  .tag-chip .remove { cursor: pointer; opacity: .6; font-size: 12px; line-height: 1; }
+  .tag-chip .remove:hover { opacity: 1; }
+  .tag-inline-input { border: none; outline: none; font-size: 12px; color: var(--gray7); background: transparent; min-width: 60px; font-family: inherit; }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="logo">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect width="26" height="26" rx="5" fill="#fff" fill-opacity=".15"/><text x="5" y="19" font-size="14" font-weight="800" fill="white" font-family="sans-serif">S</text></svg>
+    <div><div style="font-weight:700;font-size:13px;">서울종합방재센터</div><div class="logo-sub">SEOUL EMERGENCY OPERATIONS CENTER</div></div>
+  </div>
+  <span class="sep">|</span>
+  <div class="breadcrumb">
+    <span>🏠</span><span style="opacity:.4">›</span>
+    <span>구급상황 관리 ▾</span><span style="opacity:.4">›</span>
+    <span>데이터 관리 ▾</span><span style="opacity:.4">›</span>
+    <span style="font-weight:600;">병의원 운영 현황 ▾</span>
+  </div>
+  <div class="user">
+    <span>👤</span><div><div style="font-weight:600;">다반치 관리자</div><div style="font-size:10px;opacity:.6;">DAVInCK@aift.kr</div></div>
+  </div>
+</nav>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-icon active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+  <div class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+  <div class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+  <div class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.5 19.79 19.79 0 0 1 1.61 2.84 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.72 16z"/></svg></div>
+  <div class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
+  <div class="sidebar-icon" style="margin-top:auto;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+</aside>
+
+<!-- MAIN -->
+<main class="main" id="main">
+  <div class="page-header">
+    <h1 class="page-title">병의원 운영 현황</h1>
+    <div class="page-meta">
+      <div class="refresh">🔄 데이터 갱신: YYYY-MM-DD / HH:MM:SS</div>
+      <div>내용 업데이트: YYYY-MM-DD / HH:MM:SS</div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filter-wrap">
+    <div class="filter-row">
+      <div class="filter-group"><span class="filter-label">진료과목</span><select class="filter-select"><option>전체</option><option>내과</option><option>치과</option><option>한의원</option><option>정형외과</option><option>소아과</option><option>피부과</option></select></div>
+      <div class="filter-group"><span class="filter-label">기관구분</span><select class="filter-select"><option>전체</option><option>의원</option><option>치과</option><option>한의원</option></select></div>
+      <div class="filter-group"><span class="filter-label">자치구</span><select class="filter-select"><option>전체</option><option>강남구</option><option>서초구</option><option>마포구</option><option>종로구</option></select></div>
+      <div class="filter-group"><span class="filter-label">요일</span><select class="filter-select"><option>화요일</option><option>월요일</option><option>수요일</option><option>목요일</option><option>금요일</option><option>토요일</option><option>일요일</option></select></div>
+      <div class="filter-group"><span class="filter-label">운영 여부</span><select class="filter-select"><option>전체</option><option>운영중</option><option>운영종료</option></select></div>
+      <div class="filter-group">
+        <span class="filter-label">휴일 조사 결과</span>
+        <div class="info-icon">i<div class="tooltip">선택 시 해당 조사에서 진료 가능으로 응답한 병원만 표시</div></div>
+        <select class="filter-select" style="margin-left:6px;"><option>전체</option><option>가능</option><option>불가</option></select>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-ghost">초기화</button>
+        <button class="btn btn-primary">검색</button>
+      </div>
+    </div>
+    <div class="filter-row filter-row2">
+      <div class="filter-group"><span class="filter-label">자원검색</span>
+        <div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input class="search-input" placeholder="X-ray, 봉합"></div>
+      </div>
+      <div class="filter-group"><span class="filter-label">병원명</span>
+        <div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input class="search-input" placeholder="병원명"></div>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+        <div class="legend"><div class="legend-dot dot-green"></div>진료 중 <div class="legend-dot dot-red" style="margin-left:8px;"></div>진료 종료</div>
+        <button class="download-btn">⬇ 다운로드</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th class="check-col"><input type="checkbox" class="cb" id="checkAll"></th>
+          <th>구분</th><th>자치구</th><th>병원명</th><th>전화번호</th><th>주소</th>
+          <th>진료 시간(화)</th><th>진료 시간(공휴일)</th><th>검사 장비</th>
+          <th>처치·시술</th><th>전문·특성</th><th>진료 대상</th>
+          <th>안내 상태</th><th>비고</th><th>조사일</th><th>상세</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="pagination">
+      <span id="totalCount">139</span>
+      <div class="page-btns" id="pageBtns"></div>
+    </div>
+  </div>
+</main>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <button class="drawer-close" id="drawerClose">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+    </button>
+    <span class="drawer-title" id="drawerTitle">병원명</span>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-footer" id="drawerFooter">
+    <button class="btn btn-outline-red" id="deleteBtn">삭제</button>
+    <button class="btn btn-primary" id="editBtn">수정</button>
+  </div>
+</div>
+
+<script>
+const data = [
+  { id:1, type:'의원', typeColor:'clinic', district:'강남구', name:'김앤박내과의원', phone:'02-1111-2222', addr:'독막로 320, 2층', timeWeekday:'09:00~13:00', timeHoliday:'09:00~13:00', equipment:['X-ray(흉부·폐)','초음파(근골격계)'], treatment:['물리치료','도수치료'], specialty:['척추전문','전문의진료'], target:'성인만', status:'안내 거부', note:'추가 가능, 배달 가능', survey:'2025.03.03', active:true, hours:{월:'09:00~18:00',화:'09:00~18:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~18:00',일:'09:00~18:00',공휴일:'휴진'}, memo:'' },
+  { id:2, type:'치과', typeColor:'dental', district:'강남구', name:'밝은미소치과', phone:'02-3333-4444', addr:'태해란로 152, 3층', timeWeekday:'09:00~18:00', timeHoliday:'09:00~13:00', equipment:['X-ray(코)','CT(코)'], treatment:['이물제거','봉합(간단)'], specialty:['전문의진료'], target:'전연령', status:'안내 거부', note:'평일 야간 진료 가능', survey:'2025.03.03', active:true, hours:{월:'09:00~18:00',화:'09:00~18:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~13:00',일:'휴진',공휴일:'휴진'}, memo:'' },
+  { id:3, type:'한의원', typeColor:'hani', district:'서초구', name:'건강한의원', phone:'02-5555-6666', addr:'역삼동 826-21', timeWeekday:'09:00~18:00', timeHoliday:'09:00~13:00', equipment:['파노라마'], treatment:['봉합(구강외과)'], specialty:['봉합(구강외과)'], target:'전연령', status:'', note:'공휴일 운영', survey:'2025.03.03', active:true, hours:{월:'09:00~18:00',화:'09:00~18:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~18:00',일:'09:00~18:00',공휴일:'09:00~13:00'}, memo:'' },
+  { id:4, type:'의원', typeColor:'clinic', district:'강남구', name:'우리아이소아과', phone:'02-1111-2222', addr:'종로 157', timeWeekday:'09:00~13:00', timeHoliday:'09:00~13:00', equipment:['X-ray(흉부)','심전도'], treatment:['수액(일반,영양제)','상처소독'], specialty:['탁관절전문','전문의진료'], target:'성인만', status:'', note:'추가 가능, 배달 가능', survey:'2025.03.03', active:true, hours:{월:'09:00~18:00',화:'09:00~13:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~13:00',일:'휴진',공휴일:'휴진'}, memo:'' },
+  { id:5, type:'의원', typeColor:'clinic', district:'강남구', name:'바로정형외과', phone:'02-3333-4444', addr:'도봉로 350', timeWeekday:'09:00~18:00', timeHoliday:'09:00~13:00', equipment:['X-ray','CT'], treatment:['수액','상처소독'], specialty:['소아클리닉','여의사진료'], target:'전연령', status:'', note:'평일 야간 진료 가능', survey:'2025.03.03', active:false, hours:{월:'09:00~18:00',화:'09:00~18:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'휴진',일:'휴진',공휴일:'휴진'}, memo:'' },
+  { id:6, type:'의원', typeColor:'clinic', district:'서초구', name:'아름다운피부과', phone:'02-5555-6666', addr:'을지로 128', timeWeekday:'09:00~18:00', timeHoliday:'09:00~13:00', equipment:[], treatment:[], specialty:[], target:'성인만', status:'확인 불가', note:'공휴일 운영', survey:'2025.03.03', active:false, hours:{월:'09:00~18:00',화:'09:00~18:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~13:00',일:'휴진',공휴일:'09:00~13:00'}, memo:'' },
+  { id:7, type:'의원', typeColor:'clinic', district:'강남구', name:'김앤박내과의원', phone:'02-1111-2222', addr:'서초대로 396', timeWeekday:'24시간', timeHoliday:'24시간', equipment:['초음파(자궁·유방)','CT'], treatment:['봉합','수액'], specialty:['여의사진료','클리닉운영'], target:'전연령', status:'확인 불가', note:'추가 가능, 배달 가능', survey:'2025.03.03', active:true, hours:{월:'24시간',화:'24시간',수:'24시간',목:'24시간',금:'24시간',토:'24시간',일:'24시간',공휴일:'24시간'}, memo:'' },
+  { id:8, type:'치과', typeColor:'dental', district:'강남구', name:'밝은미소치과', phone:'02-3333-4444', addr:'상도로 188', timeWeekday:'09:00~18:00', timeHoliday:'09:00~13:00', equipment:['X-ray'], treatment:['분만'], specialty:['여의사진료'], target:'전연령', status:'', note:'평일 야간 진료 가능', survey:'2025.03.03', active:false, hours:{월:'09:00~18:00',화:'09:00~18:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~13:00',일:'휴진',공휴일:'휴진'}, memo:'' },
+  { id:9, type:'한의원', typeColor:'hani', district:'서초구', name:'건강한의원', phone:'02-5555-6666', addr:'동일로 1355', timeWeekday:'09:00~18:00', timeHoliday:'09:00~13:00', equipment:['OCT'], treatment:['물리치료'], specialty:['비만클리닉'], target:'성인만', status:'', note:'공휴일 운영', survey:'2025.03.03', active:true, hours:{월:'09:00~18:00',화:'09:00~18:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~18:00',일:'09:00~18:00',공휴일:'09:00~13:00'}, memo:'' },
+  { id:10, type:'의원', typeColor:'clinic', district:'강남구', name:'우리아이소아과', phone:'02-1111-2222', addr:'연희로 11길 20', timeWeekday:'09:00~13:00', timeHoliday:'09:00~13:00', equipment:['X-ray(흉부)'], treatment:['이물제거(안구)'], specialty:['통증클리닉'], target:'전연령', status:'', note:'추가 가능, 배달 가능', survey:'2025.03.03', active:true, hours:{월:'09:00~18:00',화:'09:00~13:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~13:00',일:'휴진',공휴일:'휴진'}, memo:'' },
+  { id:11, type:'의원', typeColor:'clinic', district:'서초구', name:'아름다운피부과', phone:'02-5555-6666', addr:'을지로 128', timeWeekday:'09:00~18:00', timeHoliday:'09:00~13:00', equipment:[], treatment:[], specialty:[], target:'성인만', status:'확인 불가', note:'공휴일 운영', survey:'2025.03.03', active:false, hours:{월:'09:00~18:00',화:'09:00~18:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~13:00',일:'휴진',공휴일:'09:00~13:00'}, memo:'' },
+  { id:12, type:'의원', typeColor:'clinic', district:'강남구', name:'김앤박내과의원', phone:'02-1111-2222', addr:'서초대로 396', timeWeekday:'24시간', timeHoliday:'24시간', equipment:['초음파(자궁·유방)','CT'], treatment:['봉합','수액'], specialty:['여의사진료','클리닉운영'], target:'전연령', status:'확인 불가', note:'추가 가능, 배달 가능', survey:'2025.03.03', active:true, hours:{월:'24시간',화:'24시간',수:'24시간',목:'24시간',금:'24시간',토:'24시간',일:'24시간',공휴일:'24시간'}, memo:'' },
+  { id:13, type:'치과', typeColor:'dental', district:'강남구', name:'밝은미소치과', phone:'02-3333-4444', addr:'상도로 188', timeWeekday:'09:00~18:00', timeHoliday:'09:00~13:00', equipment:['X-ray'], treatment:['분만'], specialty:['여의사진료'], target:'전연령', status:'', note:'평일 야간 진료 가능', survey:'2025.03.03', active:false, hours:{월:'09:00~18:00',화:'09:00~18:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~13:00',일:'휴진',공휴일:'휴진'}, memo:'' },
+  { id:14, type:'한의원', typeColor:'hani', district:'서초구', name:'건강한의원', phone:'02-5555-6666', addr:'동일로 1355', timeWeekday:'09:00~18:00', timeHoliday:'09:00~13:00', equipment:['OCT'], treatment:['물리치료'], specialty:['비만클리닉'], target:'성인만', status:'', note:'공휴일 운영', survey:'2025.03.03', active:true, hours:{월:'09:00~18:00',화:'09:00~18:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~18:00',일:'09:00~18:00',공휴일:'09:00~13:00'}, memo:'' },
+  { id:15, type:'의원', typeColor:'clinic', district:'강남구', name:'우리아이소아과', phone:'02-1111-2222', addr:'연희로 11길 20', timeWeekday:'09:00~13:00', timeHoliday:'09:00~13:00', equipment:['X-ray(흉부)'], treatment:['이물제거(안구)'], specialty:['통증클리닉'], target:'전연령', status:'', note:'추가 가능, 배달 가능', survey:'2025.03.03', active:true, hours:{월:'09:00~18:00',화:'09:00~13:00',수:'09:00~18:00',목:'09:00~18:00',금:'09:00~18:00',토:'09:00~13:00',일:'휴진',공휴일:'휴진'}, memo:'' },
+];
+
+const typeColorMap = { clinic:'chip-blue', dental:'chip-purple', hani:'chip-teal' };
+const typeTextMap = { clinic:'의원', dental:'치과', hani:'한의원' };
+const eqColors = ['chip-blue','chip-blue','chip-blue','chip-blue'];
+const treatColors = ['chip-green','chip-green','chip-green'];
+const specColors = ['chip-orange','chip-orange','chip-purple','chip-teal'];
+
+function getChipColor(arr, i) {
+  const palette = ['chip-blue','chip-green','chip-purple','chip-orange','chip-teal','chip-pink'];
+  return palette[i % palette.length];
+}
+
+let currentId = null;
+let isEdit = false;
+let editData = {};
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  data.forEach(row => {
+    const tr = document.createElement('tr');
+    if (currentId === row.id) tr.classList.add('selected');
+    tr.dataset.id = row.id;
+    tr.innerHTML = `
+      <td class="check-col"><input type="checkbox" class="cb"></td>
+      <td><span class="chip ${typeColorMap[row.typeColor]}">${row.type}</span></td>
+      <td>${row.district}</td>
+      <td style="font-weight:600;">${row.name}</td>
+      <td style="color:var(--gray5);">${row.phone}</td>
+      <td style="color:var(--gray6);">${row.addr}</td>
+      <td><span class="dot ${row.active?'dot-green':'dot-red'}"></span>${row.timeWeekday}</td>
+      <td><span class="dot ${row.active?'dot-green':'dot-red'}"></span>${row.timeHoliday}</td>
+      <td>${row.equipment.map((e,i)=>`<span class="chip chip-blue" style="font-size:11px;">${e}</span>`).join('')}</td>
+      <td>${row.treatment.map((t,i)=>`<span class="chip chip-green" style="font-size:11px;">${t}</span>`).join('')}</td>
+      <td>${row.specialty.map((s,i)=>`<span class="chip ${getChipColor([],i)}" style="font-size:11px;">${s}</span>`).join('')}</td>
+      <td><span class="chip chip-gray">${row.target}</span></td>
+      <td style="color:var(--gray5);font-size:11px;">${row.status}</td>
+      <td style="color:var(--gray5);font-size:11px;">${row.note}</td>
+      <td style="color:var(--gray5);">${row.survey}</td>
+      <td><button class="icon-btn detail-btn" data-id="${row.id}" title="상세보기">
+        <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // row dblclick
+  tbody.querySelectorAll('tr').forEach(tr => {
+    tr.addEventListener('dblclick', (e) => {
+      if (e.target.closest('.detail-btn') || e.target.closest('input')) return;
+      const id = parseInt(tr.dataset.id);
+      openDrawer(id);
+    });
+  });
+  // detail btn
+  tbody.querySelectorAll('.detail-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDrawer(parseInt(btn.dataset.id));
+    });
+  });
+}
+
+function openDrawer(id) {
+  currentId = id;
+  isEdit = false;
+  const row = data.find(r => r.id === id);
+  if (!row) return;
+  editData = JSON.parse(JSON.stringify(row));
+  document.getElementById('drawerTitle').textContent = row.name;
+  renderDrawerView(row);
+  renderTable();
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('main').classList.add('drawer-open');
+  document.getElementById('drawerFooter').innerHTML = `
+    <button class="btn btn-outline-red" id="deleteBtn" style="flex:1;padding:8px;font-size:13px;">삭제</button>
+    <button class="btn btn-primary" id="editBtn" style="flex:1;padding:8px;font-size:13px;">수정</button>
+  `;
+  document.getElementById('deleteBtn').onclick = () => {
+    if (confirm('삭제하시겠습니까?')) {
+      const idx = data.findIndex(r=>r.id===id);
+      if (idx>-1) data.splice(idx,1);
+      closeDrawer();
+      renderTable();
+    }
+  };
+  document.getElementById('editBtn').onclick = () => switchEditMode();
+}
+
+function closeDrawer() {
+  currentId = null;
+  isEdit = false;
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('main').classList.remove('drawer-open');
+  renderTable();
+}
+
+function renderDrawerView(row) {
+  const body = document.getElementById('drawerBody');
+  const hoursHtml = Object.entries(row.hours).map(([day, val]) =>
+    `<div class="hours-row"><span class="hours-day">${day}</span><span class="hours-val ${val==='휴진'?'closed':''}">${val}</span></div>`
+  ).join('');
+  body.innerHTML = `
+    <div class="section-title">기본 정보</div>
+    <div class="info-card">
+      <div class="info-row"><span class="info-key">진료과목</span><span class="info-val">${row.type === '의원' ? '내과·외과' : row.type === '치과' ? '치과' : '한의학과'}</span></div>
+      <div class="info-row"><span class="info-key">주소</span><span class="info-val">${row.district} ${row.addr}</span></div>
+      <div class="info-row"><span class="info-key">전화번호</span><span class="info-val">${row.phone}</span></div>
+    </div>
+    <div class="section-title">진료 시간</div>
+    <div class="hours-grid">${hoursHtml}</div>
+    <div class="section-title">A. 검사장비</div>
+    <div class="chips-wrap">${row.equipment.map((e,i)=>`<span class="chip chip-blue">${e}</span>`).join('') || '<span style="color:var(--gray5);font-size:12px;">-</span>'}</div>
+    <div class="section-title">B. 처치·시술</div>
+    <div class="chips-wrap">${row.treatment.map((t,i)=>`<span class="chip chip-green">${t}</span>`).join('') || '<span style="color:var(--gray5);font-size:12px;">-</span>'}</div>
+    <div class="section-title">전문·특성</div>
+    <div class="chips-wrap">${row.specialty.map((s,i)=>`<span class="chip ${getChipColor([],i)}">${s}</span>`).join('') || '<span style="color:var(--gray5);font-size:12px;">-</span>'}</div>
+    <div class="section-title">진료대상</div>
+    <div class="chips-wrap"><span class="chip chip-gray">${row.target}</span></div>
+    <div class="section-title">메모</div>
+    <div class="memo-box">${row.memo || '메모입니다'}</div>
+  `;
+}
+
+function switchEditMode() {
+  isEdit = true;
+  const row = data.find(r => r.id === currentId);
+  editData = JSON.parse(JSON.stringify(row));
+  renderDrawerEdit();
+  document.getElementById('drawerFooter').innerHTML = `
+    <button class="btn btn-ghost" id="cancelBtn" style="flex:1;padding:8px;font-size:13px;border:1px solid var(--gray3);">취소</button>
+    <button class="btn btn-primary" id="saveBtn" style="flex:1;padding:8px;font-size:13px;">저장</button>
+  `;
+  document.getElementById('cancelBtn').onclick = () => {
+    isEdit = false;
+    renderDrawerView(data.find(r=>r.id===currentId));
+    document.getElementById('drawerFooter').innerHTML = `
+      <button class="btn btn-outline-red" id="deleteBtn" style="flex:1;padding:8px;font-size:13px;">삭제</button>
+      <button class="btn btn-primary" id="editBtn" style="flex:1;padding:8px;font-size:13px;">수정</button>
+    `;
+    document.getElementById('deleteBtn').onclick = () => { if(confirm('삭제?')){const idx=data.findIndex(r=>r.id===currentId);if(idx>-1)data.splice(idx,1);closeDrawer();renderTable();}};
+    document.getElementById('editBtn').onclick = () => switchEditMode();
+  };
+  document.getElementById('saveBtn').onclick = () => saveEdit();
+}
+
+function renderDrawerEdit() {
+  const body = document.getElementById('drawerBody');
+  const days = ['월','화','수','목','금','토','일','공휴일'];
+  const hoursEdits = days.map(day => {
+    const val = editData.hours[day] || '휴진';
+    const isOff = val === '휴진';
+    const [start='00:00', end='00:00'] = isOff ? ['00:00','00:00'] : val.split('~');
+    return `
+      <div class="hours-edit-row">
+        <input type="checkbox" class="hours-check" data-day="${day}" ${isOff?'':'checked'} id="hc_${day}">
+        <label class="hours-day-label" for="hc_${day}">${day}</label>
+        <input type="time" class="time-input" data-day="${day}" data-type="start" value="${isOff?'00:00':start}" style="flex:1;" ${isOff?'disabled':''}>
+        <span class="time-sep">~</span>
+        <input type="time" class="time-input" data-day="${day}" data-type="end" value="${isOff?'00:00':end}" style="flex:1;" ${isOff?'disabled':''}>
+      </div>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div class="form-group">
+      <label class="form-label">전화번호</label>
+      <input class="form-input" id="ed_phone" value="${editData.phone}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">주소</label>
+      <input class="form-input" id="ed_addr" value="${editData.district} ${editData.addr}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">진료 시간</label>
+      ${hoursEdits}
+    </div>
+    <div class="form-group">
+      <label class="form-label">A. 검사장비</label>
+      <div class="tag-input-wrap" id="eq_wrap">${editData.equipment.map((e,i)=>`<span class="tag-chip chip-blue" data-val="${e}">${e}<span class="remove" onclick="removeTag(this,'eq')">×</span></span>`).join('')}<input class="tag-inline-input" id="eq_input" placeholder="추가 후 Enter"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">B. 처치·시술</label>
+      <div class="tag-input-wrap" id="tr_wrap">${editData.treatment.map((t,i)=>`<span class="tag-chip chip-green" data-val="${t}">${t}<span class="remove" onclick="removeTag(this,'tr')">×</span></span>`).join('')}<input class="tag-inline-input" id="tr_input" placeholder="추가 후 Enter"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">전문·특성</label>
+      <div class="tag-input-wrap" id="sp_wrap">${editData.specialty.map((s,i)=>`<span class="tag-chip ${getChipColor([],i)}" data-val="${s}">${s}<span class="remove" onclick="removeTag(this,'sp')">×</span></span>`).join('')}<input class="tag-inline-input" id="sp_input" placeholder="추가 후 Enter"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">진료 대상</label>
+      <select class="form-input" id="ed_target"><option ${editData.target==='전연령'?'selected':''}>전연령</option><option ${editData.target==='성인만'?'selected':''}>성인만</option><option ${editData.target==='소아만'?'selected':''}>소아만</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">추가 설명</label>
+      <textarea class="form-input" id="ed_memo" rows="3" placeholder="콜봇 결과 메모, 전달사항 등" style="resize:vertical;">${editData.memo||''}</textarea>
+    </div>
+  `;
+
+  // hours checkbox toggle
+  body.querySelectorAll('.hours-check').forEach(cb => {
+    cb.addEventListener('change', function() {
+      const day = this.dataset.day;
+      const timeInputs = body.querySelectorAll(`.time-input[data-day="${day}"]`);
+      timeInputs.forEach(ti => ti.disabled = !this.checked);
+    });
+  });
+
+  // tag input
+  ['eq','tr','sp'].forEach(prefix => {
+    const inp = document.getElementById(`${prefix}_input`);
+    if (!inp) return;
+    const colorMap = {eq:'chip-blue', tr:'chip-green', sp:'chip-orange'};
+    inp.addEventListener('keydown', function(e) {
+      if (e.key==='Enter' && this.value.trim()) {
+        e.preventDefault();
+        const val = this.value.trim();
+        const wrap = document.getElementById(`${prefix}_wrap`);
+        const span = document.createElement('span');
+        span.className = `tag-chip ${colorMap[prefix]}`;
+        span.dataset.val = val;
+        span.innerHTML = `${val}<span class="remove" onclick="removeTag(this,'${prefix}')">×</span>`;
+        wrap.insertBefore(span, this);
+        this.value = '';
+      }
+    });
+  });
+}
+
+function removeTag(el, prefix) {
+  el.parentElement.remove();
+}
+
+function saveEdit() {
+  const body = document.getElementById('drawerBody');
+  const row = data.find(r => r.id === currentId);
+
+  row.phone = document.getElementById('ed_phone').value;
+  const addrFull = document.getElementById('ed_addr').value;
+  row.addr = addrFull;
+
+  // hours
+  const days = ['월','화','수','목','금','토','일','공휴일'];
+  days.forEach(day => {
+    const cb = body.querySelector(`.hours-check[data-day="${day}"]`);
+    if (!cb.checked) { row.hours[day] = '휴진'; return; }
+    const s = body.querySelector(`.time-input[data-day="${day}"][data-type="start"]`).value;
+    const e = body.querySelector(`.time-input[data-day="${day}"][data-type="end"]`).value;
+    row.hours[day] = `${s}~${e}`;
+  });
+
+  // equipment
+  row.equipment = [...document.querySelectorAll('#eq_wrap .tag-chip')].map(el => el.dataset.val).filter(Boolean);
+  row.treatment = [...document.querySelectorAll('#tr_wrap .tag-chip')].map(el => el.dataset.val).filter(Boolean);
+  row.specialty = [...document.querySelectorAll('#sp_wrap .tag-chip')].map(el => el.dataset.val).filter(Boolean);
+  row.target = document.getElementById('ed_target').value;
+  row.memo = document.getElementById('ed_memo').value;
+
+  isEdit = false;
+  renderDrawerView(row);
+  document.getElementById('drawerTitle').textContent = row.name;
+  document.getElementById('drawerFooter').innerHTML = `
+    <button class="btn btn-outline-red" id="deleteBtn" style="flex:1;padding:8px;font-size:13px;">삭제</button>
+    <button class="btn btn-primary" id="editBtn" style="flex:1;padding:8px;font-size:13px;">수정</button>
+  `;
+  document.getElementById('deleteBtn').onclick = () => { if(confirm('삭제?')){const idx=data.findIndex(r=>r.id===currentId);if(idx>-1)data.splice(idx,1);closeDrawer();renderTable();}};
+  document.getElementById('editBtn').onclick = () => switchEditMode();
+  renderTable();
+}
+
+// pagination
+function renderPagination() {
+  const btns = document.getElementById('pageBtns');
+  btns.innerHTML = '';
+  const pages = [null, null, 1, 2, 3, 4, 5, null, null];
+  const icons = ['«','‹','1','2','3','4','5','›','»'];
+  const disabled = [false, false, false, false, false, false, false, false, false];
+  icons.forEach((icon, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'page-btn' + (icon==='1'?' active':'');
+    if (['«','‹','›','»'].includes(icon)) {
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="${icon==='«'?'17,18 7,12 17,6':icon==='‹'?'15,18 9,12 15,6':icon==='›'?'9,18 15,12 9,6':'7,18 17,12 7,6'}"/></svg>`;
+    } else { btn.textContent = icon; }
+    btns.appendChild(btn);
+  });
+}
+
+document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+
+// checkall
+document.getElementById('checkAll').addEventListener('change', function() {
+  document.querySelectorAll('#tableBody .cb').forEach(cb => cb.checked = this.checked);
+});
+
+renderTable();
+renderPagination();
+</script>
+</body>
+</html>
