@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>야간·휴일 운영 약국</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f4f6f9;
+    --white: #ffffff;
+    --blue: #1a5cd8;
+    --blue-light: #e8effd;
+    --blue-hover: #1449b0;
+    --gray-50: #f8f9fb;
+    --gray-100: #eef0f4;
+    --gray-200: #dde1e9;
+    --gray-300: #c4cad6;
+    --gray-400: #9aa3b2;
+    --gray-600: #5a6478;
+    --gray-800: #2c3344;
+    --green: #16a34a;
+    --green-bg: #dcfce7;
+    --red: #dc2626;
+    --red-bg: #fee2e2;
+    --orange: #ea580c;
+    --border: 1px solid var(--gray-200);
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --radius: 6px;
+    --header-h: 52px;
+  }
+  body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: var(--bg); color: var(--gray-800); font-size: 13px; line-height: 1.5; }
+
+  /* Top nav */
+  .topbar { height: var(--header-h); background: #1c2b4a; display: flex; align-items: center; padding: 0 20px; gap: 12px; }
+  .topbar-logo { color: #fff; font-weight: 700; font-size: 15px; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; }
+  .topbar-logo span { font-size: 9px; font-weight: 400; color: rgba(255,255,255,0.5); line-height: 1.2; }
+  .topbar-nav { display: flex; align-items: center; gap: 4px; margin-left: 12px; }
+  .topbar-nav a { color: rgba(255,255,255,0.7); font-size: 12px; text-decoration: none; padding: 4px 6px; border-radius: 3px; }
+  .topbar-nav a:hover { color: #fff; }
+  .topbar-nav .sep { color: rgba(255,255,255,0.3); font-size: 10px; }
+  .topbar-nav .current { color: #fff; font-weight: 600; }
+  .topbar-user { margin-left: auto; color: rgba(255,255,255,0.8); font-size: 12px; }
+
+  /* Page */
+  .page { padding: 20px 24px; }
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .page-title { font-size: 20px; font-weight: 700; color: var(--gray-800); }
+  .data-info { text-align: right; font-size: 11px; color: var(--gray-400); line-height: 1.8; }
+
+  /* Filters */
+  .filter-bar { background: var(--white); border: var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .filter-label { font-size: 12px; color: var(--gray-600); font-weight: 600; white-space: nowrap; }
+  select, .search-input { height: 32px; border: var(--border); border-radius: 4px; padding: 0 10px; font-size: 12px; font-family: inherit; color: var(--gray-800); background: var(--white); outline: none; transition: border-color .15s; }
+  select:focus, .search-input:focus { border-color: var(--blue); }
+  select { appearance: none; padding-right: 26px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239aa3b2' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; cursor: pointer; }
+  .search-input { width: 180px; padding-left: 28px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none'%3E%3Ccircle cx='6' cy='6' r='5' stroke='%239aa3b2' stroke-width='1.5'/%3E%3Cpath d='M10 10l3 3' stroke='%239aa3b2' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: left 8px center; }
+  .filter-divider { width: 1px; height: 20px; background: var(--gray-200); margin: 0 4px; }
+  .btn { height: 32px; padding: 0 14px; border-radius: 4px; font-size: 12px; font-family: inherit; cursor: pointer; border: var(--border); font-weight: 600; transition: all .15s; }
+  .btn-reset { background: var(--white); color: var(--gray-600); }
+  .btn-reset:hover { background: var(--gray-50); border-color: var(--gray-300); }
+  .btn-search { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .btn-search:hover { background: var(--blue-hover); }
+
+  /* Legend & download */
+  .table-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .legend { display: flex; gap: 14px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--gray-600); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-green { background: var(--green); }
+  .dot-red { background: var(--red); }
+  .btn-download { height: 28px; padding: 0 12px; border-radius: 4px; font-size: 11px; font-family: inherit; cursor: pointer; border: var(--border); background: var(--white); color: var(--gray-600); display: flex; align-items: center; gap: 5px; }
+  .btn-download:hover { background: var(--gray-50); }
+
+  /* Table */
+  .table-wrap { background: var(--white); border: var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--gray-50); border-bottom: 2px solid var(--gray-200); }
+  th { padding: 10px 10px; text-align: left; font-weight: 700; color: var(--gray-600); font-size: 12px; white-space: nowrap; }
+  tbody tr { border-bottom: var(--border); transition: background .1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #fafbfe; }
+  td { padding: 9px 10px; font-size: 12px; color: var(--gray-800); }
+  .td-pharmacy { font-weight: 700; }
+
+  /* Chips */
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .chip-green { background: var(--green-bg); color: var(--green); }
+  .chip-red { background: var(--red-bg); color: var(--red); }
+  .chip-blue { background: var(--blue-light); color: var(--blue); }
+  .chip-gray { background: var(--gray-100); color: var(--gray-600); }
+
+  .time-cell { cursor: pointer; }
+  .time-cell:hover .time-text { text-decoration: underline; color: var(--blue); }
+
+  .remark-cell { cursor: pointer; min-width: 120px; }
+  .remark-edit { width: 100%; border: 1px solid var(--blue); border-radius: 3px; padding: 2px 6px; font-family: inherit; font-size: 12px; outline: none; }
+
+  /* Pagination */
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--white); border-top: var(--border); }
+  .page-count { font-size: 12px; color: var(--gray-600); }
+  .page-btns { display: flex; gap: 4px; align-items: center; }
+  .page-btn { width: 28px; height: 28px; border: var(--border); border-radius: 4px; background: var(--white); cursor: pointer; font-size: 12px; color: var(--gray-600); display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .page-btn:hover { background: var(--gray-50); border-color: var(--gray-300); }
+  .page-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 700; }
+  .page-btn:disabled { opacity: 0.4; cursor: default; }
+
+  /* Modal */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: flex; align-items: center; justify-content: center; }
+  .modal { background: var(--white); border-radius: 10px; width: 420px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+  .modal-header { padding: 20px 20px 12px; border-bottom: var(--border); }
+  .modal-title { font-size: 15px; font-weight: 700; color: var(--gray-800); }
+  .modal-sub { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+  .modal-body { padding: 8px 0; }
+  .modal-footer { padding: 12px 20px; border-top: var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+  .btn-cancel { height: 36px; padding: 0 20px; border: var(--border); border-radius: 5px; background: var(--white); color: var(--gray-600); font-family: inherit; font-size: 13px; cursor: pointer; }
+  .btn-cancel:hover { background: var(--gray-50); }
+  .btn-save { height: 36px; padding: 0 20px; border: none; border-radius: 5px; background: var(--blue); color: #fff; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .btn-save:hover { background: var(--blue-hover); }
+
+  /* Accordion */
+  .acc-row { border-bottom: var(--border); }
+  .acc-row:last-child { border-bottom: none; }
+  .acc-header { display: flex; align-items: center; padding: 11px 20px; cursor: pointer; user-select: none; transition: background .1s; }
+  .acc-header:hover { background: var(--gray-50); }
+  .acc-day { width: 48px; font-size: 13px; color: var(--gray-600); font-weight: 600; }
+  .acc-status { flex: 1; }
+  .acc-chevron { font-size: 12px; color: var(--gray-400); transition: transform .2s; }
+  .acc-chevron.open { transform: rotate(180deg); }
+  .acc-body { padding: 10px 20px 14px; background: var(--gray-50); display: none; }
+  .acc-body.open { display: block; }
+  .time-inputs { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .time-input { height: 32px; border: var(--border); border-radius: 4px; padding: 0 8px; font-size: 12px; font-family: inherit; width: 90px; }
+  .time-sep { color: var(--gray-400); }
+  .checkbox-row { display: flex; gap: 16px; }
+  .checkbox-label { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--gray-600); cursor: pointer; }
+  .checkbox-label input { accent-color: var(--blue); }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .modal { animation: fadeIn .18s ease; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect width="22" height="22" rx="4" fill="#3b7ddd"/><text x="11" y="15" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">S</text></svg>
+    <div><div style="color:#fff;font-size:14px;font-weight:700;line-height:1.2">서울종합방재센터</div><span>SEOUL EMERGENCY OPERATIONS CENTER</span></div>
+  </div>
+  <div class="topbar-nav">
+    <a href="#">🏠</a>
+    <span class="sep">›</span>
+    <a href="#">구급상황 관리</a>
+    <span class="sep">›</span>
+    <a href="#">데이터 관리</a>
+    <span class="sep">›</span>
+    <span class="current">야간·휴일 운영 약국</span>
+  </div>
+  <div class="topbar-user">다반치 관리자</div>
+</div>
+
+<div class="page">
+  <div class="page-header">
+    <div class="page-title">야간·휴일 운영 약국</div>
+    <div class="data-info">
+      데이터 갱신 : 2024-10-05 / 11:00:00<br>
+      내용 업데이트 : 2024-10-05 / 11:00:00
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">구</span>
+      <select id="filterGu" onchange="applyFilters()">
+        <option value="">전체</option>
+        <option>강남구</option>
+        <option>서초구</option>
+        <option>마포구</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">동</span>
+      <select id="filterDong" onchange="applyFilters()">
+        <option value="">전체</option>
+        <option>대치동</option>
+        <option>삼성동</option>
+        <option>반포동</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">요일</span>
+      <select id="filterDay" onchange="onDayChange()">
+        <option value="화">화요일</option>
+        <option value="수">수요일</option>
+        <option value="목">목요일</option>
+        <option value="금">금요일</option>
+        <option value="토">토요일</option>
+        <option value="일">일요일</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">운영 여부</span>
+      <select id="filterStatus" onchange="applyFilters()">
+        <option value="">전체</option>
+        <option value="영업 중">영업 중</option>
+        <option value="영업 종료">영업 종료</option>
+      </select>
+    </div>
+    <div class="filter-divider"></div>
+    <input class="search-input" id="searchName" placeholder="약국 이름" oninput="applyFilters()">
+    <button class="btn btn-reset" onclick="resetFilters()">초기화</button>
+    <button class="btn btn-search" onclick="applyFilters()">검색</button>
+  </div>
+
+  <div class="table-toolbar">
+    <div class="legend">
+      <div class="legend-item"><span class="dot dot-green"></span>영업 중</div>
+      <div class="legend-item"><span class="dot dot-red"></span>영업 종료</div>
+    </div>
+    <button class="btn-download">⬇ 다운로드</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th>구</th>
+          <th>동</th>
+          <th>약국</th>
+          <th>전화번호</th>
+          <th>주소</th>
+          <th>위치</th>
+          <th id="timeHeader">운영시간(화)</th>
+          <th>운영시간(공휴일)</th>
+          <th>운영여부</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="pagination">
+      <span class="page-count" id="pageCount">총 0건</span>
+      <div class="page-btns" id="pageBtns"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="modalOverlay" style="display:none" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title">운영시간 상세 조회</div>
+      <div class="modal-sub" id="modalSub"></div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-save" onclick="saveModal()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DAYS = ['월','화','수','목','금','토','일','공휴일'];
+
+const RAW_DATA = [
+  { id:1, gu:'강남구', dong:'대치동', name:'24시 온누리 약국', tel:'02-1111-2222', addr:'테헤란로 100(대치동 123-4)', loc:'선릉역 1번 출구 30m', schedule:{ 월:{h24:true,off:false,start:'00:00',end:'00:00'}, 화:{h24:true,off:false,start:'00:00',end:'00:00'}, 수:{h24:true,off:false,start:'00:00',end:'00:00'}, 목:{h24:true,off:false,start:'00:00',end:'00:00'}, 금:{h24:true,off:false,start:'00:00',end:'00:00'}, 토:{h24:true,off:false,start:'00:00',end:'00:00'}, 일:{h24:false,off:true,start:'',end:''}, 공휴일:{h24:false,off:true,start:'',end:''} }, status:'영업 중', remark:'추차 가능, 배달 가능' },
+  { id:2, gu:'강남구', dong:'삼성동', name:'늘은밤약국', tel:'02-3333-4444', addr:'봉은사로 200(삼성동 567-8)', loc:'삼성역 5번 출구 50m', schedule:{ 월:{h24:false,off:false,start:'09:00',end:'22:00'}, 화:{h24:false,off:false,start:'09:00',end:'22:00'}, 수:{h24:false,off:false,start:'09:00',end:'22:00'}, 목:{h24:false,off:false,start:'09:00',end:'22:00'}, 금:{h24:false,off:false,start:'09:00',end:'22:00'}, 토:{h24:false,off:false,start:'09:00',end:'22:00'}, 일:{h24:false,off:false,start:'09:00',end:'22:00'}, 공휴일:{h24:false,off:false,start:'09:00',end:'22:00'} }, status:'영업 중', remark:'평일 야간 진료 가능' },
+  { id:3, gu:'서초구', dong:'반포동', name:'휴일온약국', tel:'02-5555-6666', addr:'반포대로 300(반포동 89-1)', loc:'고속터미널역 3번 출구 100m', schedule:{ 월:{h24:false,off:false,start:'09:00',end:'22:00'}, 화:{h24:false,off:false,start:'09:00',end:'22:00'}, 수:{h24:false,off:false,start:'09:00',end:'22:00'}, 목:{h24:false,off:false,start:'09:00',end:'22:00'}, 금:{h24:false,off:false,start:'09:00',end:'22:00'}, 토:{h24:false,off:false,start:'09:00',end:'22:00'}, 일:{h24:false,off:false,start:'09:00',end:'18:00'}, 공휴일:{h24:false,off:false,start:'09:00',end:'18:00'} }, status:'영업 종료', remark:'공휴일 운영' },
+  { id:4, gu:'강남구', dong:'대치동', name:'새벽빛약국', tel:'02-2222-3333', addr:'테헤란로 200(대치동 456-7)', loc:'선릉역 2번 출구 100m', schedule:{ 월:{h24:false,off:false,start:'10:00',end:'23:00'}, 화:{h24:false,off:false,start:'10:00',end:'23:00'}, 수:{h24:false,off:false,start:'10:00',end:'23:00'}, 목:{h24:false,off:false,start:'10:00',end:'23:00'}, 금:{h24:false,off:false,start:'10:00',end:'23:00'}, 토:{h24:false,off:false,start:'10:00',end:'20:00'}, 일:{h24:false,off:true,start:'',end:''}, 공휴일:{h24:false,off:true,start:'',end:''} }, status:'영업 중', remark:'주차 가능' },
+  { id:5, gu:'마포구', dong:'상암동', name:'디지털약국', tel:'02-4444-5555', addr:'월드컵북로 200(상암동 100)', loc:'디지털미디어시티역 도보 5분', schedule:{ 월:{h24:false,off:false,start:'08:00',end:'21:00'}, 화:{h24:false,off:false,start:'08:00',end:'21:00'}, 수:{h24:false,off:false,start:'08:00',end:'21:00'}, 목:{h24:false,off:false,start:'08:00',end:'21:00'}, 금:{h24:false,off:false,start:'08:00',end:'21:00'}, 토:{h24:false,off:false,start:'09:00',end:'18:00'}, 일:{h24:false,off:true,start:'',end:''}, 공휴일:{h24:false,off:true,start:'',end:''} }, status:'영업 중', remark:'배달 가능' },
+  { id:6, gu:'서초구', dong:'서초동', name:'서초야간약국', tel:'02-6666-7777', addr:'서초대로 100(서초동 200)', loc:'교대역 10번 출구 50m', schedule:{ 월:{h24:true,off:false,start:'00:00',end:'00:00'}, 화:{h24:true,off:false,start:'00:00',end:'00:00'}, 수:{h24:true,off:false,start:'00:00',end:'00:00'}, 목:{h24:true,off:false,start:'00:00',end:'00:00'}, 금:{h24:true,off:false,start:'00:00',end:'00:00'}, 토:{h24:false,off:false,start:'09:00',end:'22:00'}, 일:{h24:false,off:false,start:'09:00',end:'18:00'}, 공휴일:{h24:false,off:false,start:'09:00',end:'18:00'} }, status:'영업 중', remark:'공휴일 운영' },
+];
+
+let data = RAW_DATA.map(d => ({...d, schedule: JSON.parse(JSON.stringify(d.schedule))}));
+let filteredData = [...data];
+let currentPage = 1;
+const PAGE_SIZE = 15;
+let currentDay = '화';
+let editingRow = null;
+let editingRowId = null;
+let tempSchedule = null;
+
+function getDayLabel(d) {
+  const s = data.find(r => r.id === d.id).schedule[currentDay];
+  if (!s) return '-';
+  if (s.off) return `<span class="chip chip-gray">휴무</span>`;
+  if (s.h24) return `<span class="chip chip-blue">24시간 운영</span>`;
+  return `${s.start} ~ ${s.end}`;
+}
+function getHolidayLabel(d) {
+  const s = data.find(r => r.id === d.id).schedule['공휴일'];
+  if (!s) return '-';
+  if (s.off) return `<span class="chip chip-gray">휴무</span>`;
+  if (s.h24) return `<span class="chip chip-blue">24시간 운영</span>`;
+  return `${s.start} ~ ${s.end}`;
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const start = (currentPage-1)*PAGE_SIZE;
+  const slice = filteredData.slice(start, start+PAGE_SIZE);
+  tbody.innerHTML = slice.map(d => `
+    <tr>
+      <td>${d.gu}</td>
+      <td>${d.dong}</td>
+      <td class="td-pharmacy">${d.name}</td>
+      <td>${d.tel}</td>
+      <td>${d.addr}</td>
+      <td>${d.loc}</td>
+      <td class="time-cell" onclick="openModal(${d.id})">${getDayLabel(d)}</td>
+      <td class="time-cell" onclick="openModal(${d.id})">${getHolidayLabel(d)}</td>
+      <td>${d.status === '영업 중'
+        ? `<span class="chip chip-green"><span class="dot dot-green" style="width:6px;height:6px"></span>영업 중</span>`
+        : `<span class="chip chip-red"><span class="dot dot-red" style="width:6px;height:6px"></span>영업 종료</span>`
+      }</td>
+      <td class="remark-cell" ondblclick="startEditRemark(this, ${d.id})">${d.remark}</td>
+    </tr>
+  `).join('');
+  document.getElementById('pageCount').textContent = `총 ${filteredData.length}건`;
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filteredData.length / PAGE_SIZE) || 1;
+  const btns = document.getElementById('pageBtns');
+  let html = `<button class="page-btn" onclick="goPage(1)" ${currentPage===1?'disabled':''}>«</button>`;
+  html += `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  for(let i=1;i<=total;i++) html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>›</button>`;
+  html += `<button class="page-btn" onclick="goPage(${total})" ${currentPage===total?'disabled':''}>»</button>`;
+  btns.innerHTML = html;
+}
+
+function goPage(p) {
+  const total = Math.ceil(filteredData.length / PAGE_SIZE) || 1;
+  currentPage = Math.max(1, Math.min(p, total));
+  renderTable();
+}
+
+function onDayChange() {
+  currentDay = document.getElementById('filterDay').value;
+  document.getElementById('timeHeader').textContent = `운영시간(${currentDay})`;
+  applyFilters();
+}
+
+function applyFilters() {
+  const gu = document.getElementById('filterGu').value;
+  const dong = document.getElementById('filterDong').value;
+  const status = document.getElementById('filterStatus').value;
+  const name = document.getElementById('searchName').value.trim();
+  filteredData = data.filter(d =>
+    (!gu || d.gu === gu) &&
+    (!dong || d.dong === dong) &&
+    (!status || d.status === status) &&
+    (!name || d.name.includes(name))
+  );
+  currentPage = 1;
+  renderTable();
+}
+
+function resetFilters() {
+  document.getElementById('filterGu').value = '';
+  document.getElementById('filterDong').value = '';
+  document.getElementById('filterDay').value = '화';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('searchName').value = '';
+  currentDay = '화';
+  document.getElementById('timeHeader').textContent = '운영시간(화)';
+  applyFilters();
+}
+
+// Modal
+function openModal(id) {
+  editingRowId = id;
+  const row = data.find(r => r.id === id);
+  tempSchedule = JSON.parse(JSON.stringify(row.schedule));
+  document.getElementById('modalSub').textContent = row.name;
+  renderModalBody();
+  document.getElementById('modalOverlay').style.display = 'flex';
+}
+
+function renderModalBody() {
+  const body = document.getElementById('modalBody');
+  const dayMap = { 월:'월요일',화:'화요일',수:'수요일',목:'목요일',금:'금요일',토:'토요일',일:'일요일',공휴일:'공휴일' };
+  body.innerHTML = DAYS.map(day => {
+    const s = tempSchedule[day];
+    const label = s.off ? `<span class="chip chip-gray">휴무</span>` : s.h24 ? `<span class="chip chip-blue">24시간 운영</span>` : `${s.start} ~ ${s.end}`;
+    return `<div class="acc-row" id="acc_${day}">
+      <div class="acc-header" onclick="toggleAcc('${day}')">
+        <span class="acc-day">${dayMap[day]}</span>
+        <span class="acc-status">${label}</span>
+        <span class="acc-chevron" id="chev_${day}">▼</span>
+      </div>
+      <div class="acc-body" id="body_${day}">
+        <div class="time-inputs">
+          <input type="time" class="time-input" id="start_${day}" value="${s.start||'09:00'}" ${s.h24||s.off?'disabled':''}>
+          <span class="time-sep">~</span>
+          <input type="time" class="time-input" id="end_${day}" value="${s.end||'22:00'}" ${s.h24||s.off?'disabled':''}>
+        </div>
+        <div class="checkbox-row">
+          <label class="checkbox-label">
+            <input type="checkbox" ${s.h24?'checked':''} onchange="onH24Change('${day}',this)"> 24시간
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" ${s.off?'checked':''} onchange="onOffChange('${day}',this)"> 휴무
+          </label>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAcc(day) {
+  const body = document.getElementById('body_'+day);
+  const chev = document.getElementById('chev_'+day);
+  const isOpen = body.classList.contains('open');
+  // close all
+  DAYS.forEach(d => {
+    document.getElementById('body_'+d).classList.remove('open');
+    document.getElementById('chev_'+d).classList.remove('open');
+  });
+  if (!isOpen) {
+    body.classList.add('open');
+    chev.classList.add('open');
+  }
+}
+
+function onH24Change(day, cb) {
+  tempSchedule[day].h24 = cb.checked;
+  if (cb.checked) { tempSchedule[day].off = false; tempSchedule[day].start='00:00'; tempSchedule[day].end='00:00'; }
+  refreshAccContent(day);
+}
+function onOffChange(day, cb) {
+  tempSchedule[day].off = cb.checked;
+  if (cb.checked) { tempSchedule[day].h24 = false; tempSchedule[day].start=''; tempSchedule[day].end=''; }
+  refreshAccContent(day);
+}
+function refreshAccContent(day) {
+  const s = tempSchedule[day];
+  const si = document.getElementById('start_'+day);
+  const ei = document.getElementById('end_'+day);
+  if (si) { si.disabled = s.h24 || s.off; si.value = s.start||'09:00'; }
+  if (ei) { ei.disabled = s.h24 || s.off; ei.value = s.end||'22:00'; }
+  // update header label
+  const label = s.off ? `<span class="chip chip-gray">휴무</span>` : s.h24 ? `<span class="chip chip-blue">24시간 운영</span>` : `${s.start} ~ ${s.end}`;
+  const header = document.querySelector(`#acc_${day} .acc-status`);
+  if (header) header.innerHTML = label;
+}
+
+function saveModal() {
+  // collect time inputs
+  DAYS.forEach(day => {
+    const si = document.getElementById('start_'+day);
+    const ei = document.getElementById('end_'+day);
+    if (si && !si.disabled) { tempSchedule[day].start = si.value; tempSchedule[day].end = ei.value; }
+  });
+  const row = data.find(r => r.id === editingRowId);
+  row.schedule = JSON.parse(JSON.stringify(tempSchedule));
+  closeModal();
+  applyFilters();
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').style.display = 'none';
+}
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+// Inline remark edit
+function startEditRemark(cell, id) {
+  if (cell.querySelector('input')) return;
+  const row = data.find(r => r.id === id);
+  const val = row.remark;
+  cell.innerHTML = `<input class="remark-edit" value="${val}" id="remarkInput_${id}">`;
+  const inp = cell.querySelector('input');
+  inp.focus();
+  inp.select();
+  function save() {
+    row.remark = inp.value;
+    cell.textContent = row.remark;
+  }
+  inp.addEventListener('blur', save);
+  inp.addEventListener('keydown', e => { if(e.key==='Enter') { save(); inp.blur(); } if(e.key==='Escape') { cell.textContent = val; } });
+}
+
+// Init
+renderTable();
+</script>
+</body>
+</html>
