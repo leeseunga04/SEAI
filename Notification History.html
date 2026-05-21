@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>상황 전파 이력 관리 | 서울종합방재센터</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a3a6b;--blue:#1e56c8;--blue-lt:#e8effe;--border:#dde1e7;--border-lt:#eef0f3;
+  --bg:#f0f2f6;--surface:#fff;--text:#1a2332;--sub:#5a6677;--muted:#9aa4b2;
+  --green:#1a7f45;--green-lt:#e6f4ec;--red:#c8242a;--red-lt:#fdecea;--gray-lt:#f7f8fa;
+  --row-odd:#fff;--row-even:#f9fafb;--sel:#edf2ff;--hover:#f2f5fb;
+}
+body{font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:13px;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+/* NAV */
+nav{background:var(--navy);height:46px;display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.nav-logo{display:flex;align-items:center;gap:8px;color:#fff;font-size:14px;font-weight:700;letter-spacing:-.3px}
+.nav-logo-sub{font-size:9px;font-weight:400;opacity:.65;line-height:1.2;margin-top:1px}
+.nav-sep{width:1px;height:16px;background:rgba(255,255,255,.2);margin:0 6px}
+.nav-breadcrumb{color:rgba(255,255,255,.6);font-size:12px;display:flex;align-items:center;gap:4px}
+.nav-breadcrumb span{color:rgba(255,255,255,.9)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.nav-user{color:rgba(255,255,255,.85);font-size:12px}
+.nav-btn{height:28px;padding:0 12px;border-radius:4px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:11.5px;cursor:pointer;font-family:inherit;transition:background .15s}
+.nav-btn:hover{background:rgba(255,255,255,.2)}
+
+/* PAGE HEADER */
+.page-header{padding:14px 20px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.page-title{font-size:19px;font-weight:700;letter-spacing:-.4px}
+.stats-row{display:flex;align-items:center;gap:16px}
+.stat{font-size:12px;color:var(--sub)}
+.stat b{font-size:15px;font-weight:700;margin-left:2px}
+.stat-send b{color:var(--text)}
+.stat-ok b{color:var(--green)}
+.stat-fail b{color:var(--red)}
+
+/* SEARCH */
+.search-card{margin:12px 20px 10px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.s-label{font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap}
+.s-inp,.s-sel{height:30px;border:1px solid var(--border);border-radius:4px;padding:0 9px;font-size:12px;font-family:inherit;color:var(--text);background:#fff;outline:none}
+.s-inp:focus,.s-sel:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(30,86,200,.1)}
+.s-date{width:118px}
+.s-sep{width:1px;height:18px;background:var(--border-lt)}
+.btn{height:30px;padding:0 14px;border-radius:4px;border:none;font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:filter .12s}
+.btn:hover{filter:brightness(.92)}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-ghost{background:var(--gray-lt);color:var(--sub);border:1px solid var(--border)}
+
+/* BODY */
+.body{flex:1;display:flex;gap:12px;padding:0 20px 20px;min-height:0;overflow:hidden}
+
+/* PANELS */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:7px;display:flex;flex-direction:column;overflow:hidden}
+.panel-left{flex:0 0 33%}
+.panel-right{flex:1}
+.panel-header{padding:9px 14px;border-bottom:1px solid var(--border-lt);background:var(--gray-lt);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.panel-title{font-size:12.5px;font-weight:700;color:var(--sub)}
+.panel-body{flex:1;overflow-y:auto;overflow-x:hidden}
+
+/* TABLE BASE */
+table{width:100%;border-collapse:collapse}
+thead th{position:sticky;top:0;background:var(--gray-lt);border-bottom:2px solid var(--border);padding:8px 10px;font-size:11.5px;font-weight:700;color:var(--sub);text-align:center;white-space:nowrap;z-index:1}
+tbody td{padding:8px 10px;font-size:12.5px;vertical-align:middle;text-align:center;border-bottom:1px solid var(--border-lt)}
+.td-l{text-align:left}
+
+/* LEFT TABLE */
+.lt-row{cursor:pointer;transition:background .1s}
+.lt-row:nth-child(odd){background:var(--row-odd)}
+.lt-row:nth-child(even){background:var(--row-even)}
+.lt-row:hover{background:var(--hover)}
+.lt-row.selected{background:var(--sel)!important;outline:1px solid var(--blue);outline-offset:-1px}
+.lt-row td{border-bottom:1px solid var(--border-lt)}
+.content-cell{text-align:left;max-width:160px}
+.content-cell .c1{font-weight:600;font-size:12px}
+.content-cell .c2{font-size:11px;color:var(--sub);margin-top:1px}
+
+/* ACCORDION */
+.acc-row td{padding:0!important;background:#f4f7fd!important;border-bottom:1px solid var(--blue)!important}
+.acc-inner{overflow:hidden;max-height:0;transition:max-height .28s cubic-bezier(.4,0,.2,1)}
+.acc-inner.open{max-height:400px}
+.acc-body{padding:12px 14px;font-size:12px}
+.acc-meta{display:grid;grid-template-columns:70px 1fr;gap:4px 8px;margin-bottom:10px}
+.acc-meta-k{color:var(--muted);font-size:11px;font-weight:600}
+.acc-meta-v{color:var(--text);font-weight:500}
+.acc-msg{background:#fff;border:1px solid var(--border-lt);border-radius:5px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:160px;overflow-y:auto}
+.acc-section{font-size:11px;font-weight:700;color:var(--blue);margin:10px 0 5px;text-transform:uppercase;letter-spacing:.4px}
+
+/* RIGHT TABLE */
+.rt-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;flex-direction:column;gap:6px}
+.rt-empty svg{opacity:.3}
+.rt-row:nth-child(odd){background:var(--row-odd)}
+.rt-row:nth-child(even){background:var(--row-even)}
+.rt-row:hover{background:var(--hover)}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:9px;white-space:nowrap}
+.b-ok{background:var(--green-lt);color:var(--green)}
+.b-fail{background:var(--red-lt);color:var(--red)}
+.b-wait{background:#fff8e1;color:#b45309}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+/* RESEND BTN */
+.resend-btn{width:22px;height:22px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--sub);transition:background .1s}
+.resend-btn:hover{background:var(--blue-lt);color:var(--blue)}
+
+/* PAGER */
+.pager{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid var(--border-lt);background:var(--gray-lt);flex-shrink:0}
+.pager-count{font-size:11.5px;color:var(--muted)}
+.pager-btns{display:flex;gap:2px}
+.pg{width:26px;height:26px;border-radius:4px;border:1px solid var(--border);background:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sub);font-family:inherit;transition:all .1s}
+.pg:hover{background:var(--hover);border-color:var(--blue);color:var(--blue)}
+.pg.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+.pg.dis{opacity:.35;pointer-events:none}
+
+/* FOOTER BAR */
+.rt-footer{padding:8px 14px;border-top:1px solid var(--border-lt);display:flex;justify-content:flex-end;flex-shrink:0;background:var(--gray-lt)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <svg width="28" height="28" viewBox="0 0 32 32"><rect width="32" height="32" rx="4" fill="rgba(255,255,255,.15)"/><text x="16" y="22" text-anchor="middle" font-size="16" font-weight="900" fill="white" font-family="serif">S</text></svg>
+    <div><div>서울종합방재센터</div><div class="nav-logo-sub">SEOUL EMERGENCY OPERATION CENTER</div></div>
+  </div>
+  <div class="nav-sep"></div>
+  <div class="nav-breadcrumb">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    / 지능형 보고관리 / <span>상황 전파 이력 관리</span>
+  </div>
+  <div class="nav-right">
+    <div class="nav-user">👤 다반치 관리자 DAVlnCk@aift.kr</div>
+    <button class="nav-btn">↗ 상황 전파로 이동</button>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-title">상황 전파 이력 관리</div>
+  <div class="stats-row">
+    <div class="stat stat-send">발송 <b id="s-total">0</b>건</div>
+    <div class="stat stat-ok">성공 <b id="s-ok">0</b>건</div>
+    <div class="stat stat-fail">실패 <b id="s-fail">0</b>건</div>
+  </div>
+</div>
+
+<div class="search-card">
+  <span class="s-label">시작 기간</span>
+  <input class="s-inp s-date" type="date" id="f-from" value="2026-01-23">
+  <span style="color:var(--muted)">~</span>
+  <span class="s-label">종료 기간</span>
+  <input class="s-inp s-date" type="date" id="f-to" value="2026-01-23">
+  <div class="s-sep"></div>
+  <span class="s-label">전파 매체</span>
+  <select class="s-sel" id="f-media"><option value="">전체</option><option>문자</option><option>팩스</option><option>앱푸시</option></select>
+  <button class="btn btn-ghost" onclick="resetSearch()">초기화</button>
+  <button class="btn btn-primary" onclick="doSearch()">검색</button>
+</div>
+
+<div class="body">
+  <!-- LEFT PANEL -->
+  <div class="panel panel-left">
+    <div class="panel-header">
+      <span class="panel-title">전송 내역</span>
+      <span class="s-label" id="lt-count" style="font-size:11px"></span>
+    </div>
+    <div class="panel-body" id="lt-body">
+      <table>
+        <thead><tr>
+          <th style="width:36px">No</th>
+          <th style="width:54px">전파 매체</th>
+          <th style="width:120px">전송 일자</th>
+          <th>내용</th>
+          <th style="width:60px">전송자</th>
+        </tr></thead>
+        <tbody id="lt-tbody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="lt-pager"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel panel-right">
+    <div class="panel-header">
+      <span class="panel-title">수신자 및 전송 현황</span>
+      <span class="s-label" id="rt-count" style="font-size:11px"></span>
+    </div>
+    <div class="panel-body" id="rt-body">
+      <div class="rt-empty" id="rt-empty">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        전송 내역에서<br>데이터를 선택해주세요.
+      </div>
+      <table id="rt-table" style="display:none">
+        <thead><tr>
+          <th style="width:36px">No</th>
+          <th style="width:130px">기관명</th>
+          <th style="width:80px">직위</th>
+          <th style="width:70px">이름</th>
+          <th style="width:110px">전화 번호</th>
+          <th style="width:130px">전송 시간</th>
+          <th style="width:52px">재시도</th>
+          <th style="width:64px">전송 상황</th>
+          <th style="width:48px">재전송</th>
+        </tr></thead>
+        <tbody id="rt-tbody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="rt-pager" style="display:none">
+      <span class="pager-count" id="rt-count2"></span>
+      <div class="pager-btns" id="rt-pg-btns"></div>
+    </div>
+    <div class="rt-footer" id="rt-footer" style="display:none">
+      <button class="btn" style="background:var(--red-lt);color:var(--red);border:1px solid #f5c6c8;font-size:12px">전송 실패건 재전송</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── MOCK DATA ──────────────────────────────────────────────
+const ORGS = ['서울소방재난본부','시장실','서울소방재난본부','시장실','서울소방재난본부'];
+const RANKS = ['과장','수행비서관','과장','수행비서관','과장'];
+const NAMES = ['김철수','김영희','김철수','김영희','김철수'];
+const TEL = '010-0000-0000';
+const SEND_DT = '2026-01-23 15:12:55';
+
+function makeRecipients(count, failIdxs=[]){
+  return Array.from({length:count},(_,i)=>({
+    org: ORGS[i%ORGS.length],
+    rank: RANKS[i%RANKS.length],
+    name: NAMES[i%NAMES.length],
+    tel: TEL,
+    sendDt: SEND_DT,
+    retry: failIdxs.includes(i) ? '-' : (i%5===1?'2':'-'),
+    status: failIdxs.includes(i) ? 'fail' : 'ok'
+  }));
+}
+
+const HISTORY = Array.from({length:12},(_,i)=>({
+  id: i+1,
+  media:'문자',
+  dt:'2026-01-23  15:12:55',
+  title:'<대외유출금지>',
+  subtitle:`[노원구(아파트) 화재]-완진`,
+  sender:'보고대',
+  msg:`<대외유출금지>\n[노원구(아파트) 화재]-완진\n▷ (개요) 노원구 공릉동 삼익포레스트 106동 105호에서 원인 미상의 화재가 발생, 상층부 연기 유입으로 부상자 7명 발생 및 105호 세대 일부 소실\n※노원구 공릉동 737, 공동주택 15/1층, 연면적 9,768㎡\n▷ (관파) 출동 21:08 / 선착대 도착 21:16 / 초진 21:31 / 완진 21:57 ▷ (피해) 최종 인명피해 현황: 경상 7명(구조 9명, 현장처치 2명, 자력대피 48명) - 경상 7명(단순연기흡입/귀주자) 구급대에서 인근 3개 병원 분산이송\n▷ (전파) 시재난상황관리과, 소방청, 구청, 경찰, 한전, 가스 등 관련기관 상황전파 ▷ (소방력) 차량 23대, 인원 78명...`,
+  recipients: makeRecipients(20, i%3===1?[0,2,6,10,12,14,18]:[])
+}));
+
+// stats
+const allR = HISTORY.flatMap(h=>h.recipients);
+document.getElementById('s-total').textContent = allR.length;
+document.getElementById('s-ok').textContent = allR.filter(r=>r.status==='ok').length;
+document.getElementById('s-fail').textContent = allR.filter(r=>r.status==='fail').length;
+
+// ── STATE ────────────────────────────────────────────────
+let filtered = [...HISTORY];
+let selectedId = null;
+let ltPage = 1, rtPage = 1;
+const LT_PS = 10, RT_PS = 10;
+
+// ── LEFT PANEL ───────────────────────────────────────────
+function renderLeft(){
+  const tbody = document.getElementById('lt-tbody');
+  const total = filtered.length;
+  const slice = filtered.slice((ltPage-1)*LT_PS, ltPage*LT_PS);
+  document.getElementById('lt-count').textContent = `총 ${total}건`;
+
+  let html='';
+  slice.forEach((r,idx)=>{
+    const no = total - ((ltPage-1)*LT_PS + idx);
+    const sel = r.id===selectedId;
+    html+=`<tr class="lt-row${sel?' selected':''}" data-id="${r.id}" onclick="selectRow(${r.id})">
+      <td>${no}</td><td>${r.media}</td><td style="font-size:11.5px;color:var(--sub)">${r.dt}</td>
+      <td class="content-cell"><div class="c1">${r.title}</div><div class="c2">${r.subtitle}</div></td>
+      <td>${r.sender}</td>
+    </tr>
+    <tr class="acc-row" id="acc-tr-${r.id}"><td colspan="5">
+      <div class="acc-inner${sel?' open':''}" id="acc-${r.id}">
+        <div class="acc-body">
+          <div class="acc-meta">
+            <span class="acc-meta-k">전파 매체</span><span class="acc-meta-v">${r.media}</span>
+            <span class="acc-meta-k">전송 일자</span><span class="acc-meta-v">${r.dt}</span>
+            <span class="acc-meta-k">전송자</span><span class="acc-meta-v">${r.sender}</span>
+          </div>
+          <div class="acc-section">메시지 내용</div>
+          <div class="acc-msg">${r.msg}</div>
+        </div>
+      </div>
+    </td></tr>`;
+  });
+  tbody.innerHTML = html||'<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)">조회된 데이터가 없습니다.</td></tr>';
+  renderLtPager();
+}
+
+function renderLtPager(){
+  const total = Math.ceil(filtered.length/LT_PS);
+  const p = document.getElementById('lt-pager');
+  if(total<=1){p.innerHTML='';return;}
+  let h=`<span class="pager-count">Count / All</span><div class="pager-btns">`;
+  h+=`<button class="pg${ltPage===1?' dis':''}" onclick="ltGo(1)">«</button>`;
+  h+=`<button class="pg${ltPage===1?' dis':''}" onclick="ltGo(${ltPage-1})">‹</button>`;
+  for(let i=1;i<=total;i++) h+=`<button class="pg${i===ltPage?' on':''}" onclick="ltGo(${i})">${i}</button>`;
+  h+=`<button class="pg${ltPage===total?' dis':''}" onclick="ltGo(${ltPage+1})">›</button>`;
+  h+=`<button class="pg${ltPage===total?' dis':''}" onclick="ltGo(${total})">»</button></div>`;
+  p.innerHTML=h;
+}
+function ltGo(p){ltPage=p;renderLeft()}
+
+// ── RIGHT PANEL ──────────────────────────────────────────
+function renderRight(){
+  const rec = selectedId ? HISTORY.find(h=>h.id===selectedId)?.recipients||[] : null;
+  const empty = document.getElementById('rt-empty');
+  const tbl = document.getElementById('rt-table');
+  const pg = document.getElementById('rt-pager');
+  const ft = document.getElementById('rt-footer');
+
+  if(!rec){
+    empty.style.display='flex'; tbl.style.display='none'; pg.style.display='none'; ft.style.display='none';
+    document.getElementById('rt-count').textContent='';
+    return;
+  }
+  empty.style.display='none'; tbl.style.display='table'; pg.style.display='flex'; ft.style.display='flex';
+  document.getElementById('rt-count').textContent=`총 ${rec.length}건`;
+
+  const slice = rec.slice((rtPage-1)*RT_PS, rtPage*RT_PS);
+  let html='';
+  slice.forEach((r,i)=>{
+    const no=(rtPage-1)*RT_PS+i+1;
+    const badge = r.status==='ok'
+      ? `<span class="badge b-ok"><span class="dot"></span>성공</span>`
+      : `<span class="badge b-fail"><span class="dot"></span>실패</span>`;
+    html+=`<tr class="rt-row">
+      <td>${no}</td><td class="td-l">${r.org}</td><td>${r.rank}</td><td>${r.name}</td>
+      <td>${r.tel}</td><td style="font-size:11.5px;color:var(--sub)">${r.sendDt}</td>
+      <td>${r.retry}</td><td>${badge}</td>
+      <td><button class="resend-btn" title="재전송">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.42"/></svg>
+      </button></td>
+    </tr>`;
+  });
+  document.getElementById('rt-tbody').innerHTML=html;
+
+  // rt pager
+  const total=Math.ceil(rec.length/RT_PS);
+  let ph=`<span class="pager-count" id="rt-count2">Count / All</span><div class="pager-btns">`;
+  ph+=`<button class="pg${rtPage===1?' dis':''}" onclick="rtGo(1)">«</button>`;
+  ph+=`<button class="pg${rtPage===1?' dis':''}" onclick="rtGo(${rtPage-1})">‹</button>`;
+  for(let i=1;i<=total;i++) ph+=`<button class="pg${i===rtPage?' on':''}" onclick="rtGo(${i})">${i}</button>`;
+  ph+=`<button class="pg${rtPage===total?' dis':''}" onclick="rtGo(${rtPage+1})">›</button>`;
+  ph+=`<button class="pg${rtPage===total?' dis':''}" onclick="rtGo(${total})">»</button></div>`;
+  document.getElementById('rt-pager').innerHTML=ph;
+}
+function rtGo(p){rtPage=p;renderRight()}
+
+// ── INTERACTIONS ─────────────────────────────────────────
+function selectRow(id){
+  const wasSelected = selectedId===id;
+  selectedId = wasSelected ? null : id;
+  rtPage=1;
+  renderLeft();
+  renderRight();
+}
+
+function doSearch(){
+  const media = document.getElementById('f-media').value;
+  filtered = HISTORY.filter(r=> !media || r.media===media);
+  ltPage=1; selectedId=null; rtPage=1;
+  renderLeft(); renderRight();
+}
+function resetSearch(){
+  document.getElementById('f-media').value='';
+  document.getElementById('f-from').value='2026-01-23';
+  document.getElementById('f-to').value='2026-01-23';
+  filtered=[...HISTORY]; ltPage=1; selectedId=null; rtPage=1;
+  renderLeft(); renderRight();
+}
+
+renderLeft(); renderRight();
+</script>
+</body>
+</html>
