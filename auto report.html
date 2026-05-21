@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>서울소방 · 보고서 자동 작성</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard Variable','Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;-webkit-font-smoothing:antialiased}
+  :root{
+    --primary:#0066FD; --primary-hover:#0052cc; --primary-50:#F1F5FE;
+    --label:#1B1C1E; --body:#45484E; --secondary:#73747A; --tertiary:#989BA2;
+    --border:#EAEBEC; --border-strong:#DBDCDF; --divider:rgba(112,115,124,.16);
+    --bg:#F7F7F8; --surface:#fff; --row-alt:#FAFAFB;
+    --fire:#FDF2F1; --fire-text:#E82011;
+    --emer:#EBFBE7; --emer-text:#1F8A5B;
+    --rescue:#FEFADB; --rescue-text:#A77800;
+  }
+  html,body{height:100%;background:var(--bg);color:var(--label);font-size:14px}
+  button{cursor:pointer;border:none;background:none;font:inherit;color:inherit}
+
+  /* TOP NAV */
+  .topnav{height:56px;background:#0F2A47;color:#fff;display:flex;align-items:center;padding:0 24px;gap:24px;position:sticky;top:0;z-index:5}
+  .brand{display:flex;align-items:center;gap:10px;padding-right:20px;border-right:1px solid rgba(255,255,255,.12);height:36px}
+  .brand-logo{width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,#E82011,#FF7A00);display:grid;place-items:center;font-weight:700;font-size:11px;letter-spacing:-.5px}
+  .brand-text{line-height:1.1}
+  .brand-text b{font-size:14px;font-weight:600;display:block}
+  .brand-text small{font-size:9px;opacity:.6;letter-spacing:1px}
+  .nav-tab{display:flex;align-items:center;gap:6px;padding:0 14px;height:36px;border-radius:8px;font-size:14px;color:rgba(255,255,255,.85)}
+  .nav-tab svg{width:16px;height:16px}
+  .nav-tab .chev{opacity:.6}
+  .nav-tab.active{background:rgba(255,255,255,.08);color:#fff;font-weight:500}
+  .topnav .spacer{flex:1}
+  .user{display:flex;align-items:center;gap:10px;font-size:13px}
+  .user-avatar{width:32px;height:32px;border-radius:50%;background:#465BFF;display:grid;place-items:center;font-weight:600;font-size:13px}
+  .user-info b{display:block;font-weight:500}
+  .user-info small{opacity:.6;font-size:11px}
+
+  /* LAYOUT */
+  .layout{display:flex;min-height:calc(100vh - 56px)}
+  .sidebar{width:64px;background:var(--surface);border-right:1px solid var(--border);padding:16px 0;display:flex;flex-direction:column;gap:4px;align-items:center;position:sticky;top:56px;height:calc(100vh - 56px)}
+  .sb-item{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;color:var(--tertiary);transition:.15s}
+  .sb-item:hover{background:var(--bg);color:var(--body)}
+  .sb-item.active{background:var(--primary-50);color:var(--primary)}
+  .sb-item svg{width:22px;height:22px}
+
+  .main{flex:1;padding:24px 32px 40px}
+  .page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .page-title{font-size:24px;font-weight:700;letter-spacing:-.4px}
+  .page-meta{display:flex;align-items:center;gap:8px;color:var(--secondary);font-size:13px}
+  .page-meta svg{width:16px;height:16px}
+
+  /* FILTER */
+  .filter{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 1.5fr auto;gap:14px;align-items:end;margin-bottom:16px}
+  .field label{display:block;font-size:12px;color:var(--secondary);margin-bottom:6px;font-weight:500}
+  .input,.select{width:100%;height:40px;border:1px solid var(--border-strong);border-radius:8px;padding:0 12px;display:flex;align-items:center;gap:8px;background:#fff;font-size:13px;color:var(--label)}
+  .input svg,.select svg{width:16px;height:16px;color:var(--tertiary);flex-shrink:0}
+  .input input,.select select{flex:1;border:none;outline:none;background:none;font:inherit;color:inherit;width:100%;-webkit-appearance:none;appearance:none}
+  .select{position:relative;cursor:pointer}
+  .select::after{content:'';width:8px;height:8px;border-right:1.5px solid var(--secondary);border-bottom:1.5px solid var(--secondary);transform:rotate(45deg);margin-top:-3px}
+  .filter-actions{display:flex;gap:8px}
+  .btn{height:40px;padding:0 18px;border-radius:8px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:.15s;white-space:nowrap}
+  .btn-outline{border:1px solid var(--border-strong);background:#fff;color:var(--body)}
+  .btn-outline:hover{background:var(--bg)}
+  .btn-primary{background:var(--primary);color:#fff}
+  .btn-primary:hover{background:var(--primary-hover)}
+  .btn-primary:disabled{background:#B6D0FE;cursor:default}
+  .btn-sm{height:32px;padding:0 14px;font-size:12px;border-radius:6px}
+
+  /* TABLE */
+  .grid-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{background:#FAFAFB;color:var(--secondary);font-weight:600;text-align:left;padding:14px 16px;border-bottom:1px solid var(--border);font-size:12px;letter-spacing:.2px}
+  tbody td{padding:14px 16px;border-bottom:1px solid var(--divider);color:var(--body);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#FAFBFD}
+  .mono{font-variant-numeric:tabular-nums}
+  .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:.2px}
+  .badge.fire{background:var(--fire);color:var(--fire-text)}
+  .badge.emer{background:var(--emer);color:var(--emer-text)}
+  .badge.rescue{background:var(--rescue);color:var(--rescue-text)}
+  .icon-btn{width:32px;height:32px;border-radius:8px;display:inline-grid;place-items:center;color:var(--secondary);position:relative;border:1px solid transparent;transition:.15s}
+  .icon-btn:hover{background:var(--bg);color:var(--label);border-color:var(--border)}
+  .icon-btn svg{width:18px;height:18px}
+  .icon-btn .dot{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;border-radius:8px;background:#E82011;color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 4px;line-height:1}
+
+  /* PAGINATION */
+  .pager{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font-size:12px;color:var(--secondary);border-top:1px solid var(--border)}
+  .pager-pages{display:flex;align-items:center;gap:4px}
+  .pg{width:30px;height:30px;border-radius:6px;display:grid;place-items:center;color:var(--body);font-size:12px}
+  .pg:hover{background:var(--bg)}
+  .pg.active{background:var(--primary-50);color:var(--primary);font-weight:600}
+  .pg svg{width:14px;height:14px}
+  .pg.disabled{color:var(--tertiary);pointer-events:none}
+
+  /* MODAL */
+  .scrim{position:fixed;inset:0;background:rgba(15,30,50,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:24px;animation:fadeIn .15s ease}
+  .scrim.show{display:flex}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal{background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.08);width:520px;max-width:100%;animation:popIn .18s cubic-bezier(.2,.8,.3,1)}
+  .modal.lg{width:880px}
+  @keyframes popIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+  .modal-head{padding:24px 28px 8px;display:flex;align-items:center;justify-content:space-between}
+  .modal-title{font-size:18px;font-weight:700;letter-spacing:-.3px}
+  .modal-close{width:32px;height:32px;border-radius:8px;color:var(--secondary)}
+  .modal-close:hover{background:var(--bg);color:var(--label)}
+  .modal-close svg{width:18px;height:18px}
+  .modal-body{padding:16px 28px 8px}
+  .modal-foot{padding:16px 28px 24px;display:flex;justify-content:flex-end;gap:8px}
+
+  .section-label{font-size:13px;font-weight:600;color:var(--label);margin:8px 0 10px}
+  .info-card{background:var(--bg);border-radius:10px;padding:16px 18px;display:grid;gap:10px}
+  .info-row{display:flex;align-items:center;justify-content:space-between;font-size:13px}
+  .info-row .k{color:var(--secondary)}
+  .info-row .v{color:var(--label);font-weight:500}
+
+  .info-table{width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .info-table th,.info-table td{padding:12px 14px;font-size:13px;text-align:left;vertical-align:middle}
+  .info-table th{background:var(--bg);color:var(--secondary);font-weight:500;width:120px;border-bottom:1px solid var(--border)}
+  .info-table td{border-bottom:1px solid var(--border);color:var(--label)}
+  .info-table tr:last-child th,.info-table tr:last-child td{border-bottom:none}
+
+  .form-row{margin-top:16px}
+  .form-input{width:100%;height:44px;border:1px solid var(--border-strong);border-radius:8px;padding:0 14px;font-size:13px;outline:none;background:#fff}
+  .form-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(6,93,255,.12)}
+  .form-input[readonly]{background:var(--bg);color:var(--secondary)}
+  .form-help{display:flex;gap:6px;align-items:flex-start;color:var(--secondary);font-size:12px;margin-top:10px;line-height:1.5}
+  .form-help svg{width:14px;height:14px;flex-shrink:0;margin-top:2px;color:var(--tertiary)}
+
+  /* loading */
+  .loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 0 32px;gap:18px}
+  .spinner{width:48px;height:48px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--primary);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-txt{color:var(--body);font-size:14px;font-weight:500}
+
+  /* completed */
+  .complete-msg{display:flex;align-items:center;gap:10px;color:var(--emer-text);font-size:13px;font-weight:500;margin-top:14px;padding:12px 14px;background:var(--emer);border-radius:8px}
+  .complete-msg svg{width:18px;height:18px}
+
+  /* history table inside modal */
+  .htable{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  .htable thead th{background:var(--bg);color:var(--secondary);text-align:left;padding:11px 14px;font-size:12px;font-weight:500;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .htable tbody td{padding:13px 14px;border-bottom:1px solid var(--divider)}
+  .htable tbody tr:last-child td{border-bottom:none}
+  .htable .dl{width:28px;height:28px;border-radius:6px;display:inline-grid;place-items:center;color:var(--secondary)}
+  .htable .dl:hover{background:var(--bg);color:var(--primary)}
+  .htable .dl svg{width:16px;height:16px}
+
+  .empty{padding:80px 0;display:flex;flex-direction:column;align-items:center;gap:14px;color:var(--tertiary);font-size:13px}
+  .empty-icon{width:56px;height:56px;border-radius:50%;background:var(--bg);display:grid;place-items:center;color:var(--tertiary)}
+  .empty-icon svg{width:26px;height:26px}
+
+  /* select native style override for filter */
+  select{cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<header class="topnav">
+  <div class="brand">
+    <div class="brand-logo">SEOC</div>
+    <div class="brand-text"><b>서울종합방재센터</b><small>SEOUL EMERGENCY OPERATIONS CENTER</small></div>
+  </div>
+  <button class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></button>
+  <button class="nav-tab active">지능형 보고관리 <span class="chev">▾</span></button>
+  <button class="nav-tab">보고서 자동작성 <span class="chev">▾</span></button>
+  <div class="spacer"></div>
+  <div class="user">
+    <div class="user-avatar">다</div>
+    <div class="user-info"><b>다빈치 관리자</b><small><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3b7f7a6d525578727b5a525d4f155049">[email&#160;protected]</a></small></div>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <button class="sb-item" title="홈"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></button>
+    <button class="sb-item" title="챗봇"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="12" rx="3"/><path d="M9 11h.01M15 11h.01M9 15c1.5 1 4.5 1 6 0"/></svg></button>
+    <button class="sb-item active" title="보고서"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 3 5-6"/></svg></button>
+    <button class="sb-item" title="콜센터"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92V21a1 1 0 0 1-1.1 1A19 19 0 0 1 2 4.1 1 1 0 0 1 3 3h4.1a1 1 0 0 1 1 .8l1 4a1 1 0 0 1-.3 1L7 10.5a16 16 0 0 0 6.5 6.5l1.7-1.7a1 1 0 0 1 1-.3l4 1a1 1 0 0 1 .8 1z"/></svg></button>
+    <button class="sb-item" title="사례"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M12 11v6M9 14h6"/></svg></button>
+    <button class="sb-item" title="AI"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></button>
+    <button class="sb-item" title="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-head">
+      <h1 class="page-title">보고서 자동 작성</h1>
+      <div class="page-meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><span id="now">2026-05-06 / 11:00:42</span></div>
+    </div>
+
+    <!-- FILTER -->
+    <div class="filter">
+      <div class="field">
+        <label>시작</label>
+        <div class="input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><input value="2025-12-08 / 09:00"/></div>
+      </div>
+      <div class="field">
+        <label>종료</label>
+        <div class="input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><input value="2025-12-20 / 21:55"/></div>
+      </div>
+      <div class="field">
+        <label>재난 종류</label>
+        <div class="select"><select><option>전체</option><option>화재</option><option>구급</option><option>구조</option></select></div>
+      </div>
+      <div class="field">
+        <label>검색 구분</label>
+        <div class="select"><select><option>재해번호</option><option>접수자</option><option>주소</option></select></div>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <div class="input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input placeholder="재해번호 입력"/></div>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-outline">초기화</button>
+        <button class="btn btn-primary">검색</button>
+      </div>
+    </div>
+
+    <!-- GRID -->
+    <div class="grid-card">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:140px">재해번호</th>
+            <th style="width:170px">신고일시</th>
+            <th style="width:90px">접수자</th>
+            <th style="width:85px">재난 종류</th>
+            <th>상세 주소</th>
+            <th>신고 내용</th>
+            <th style="width:140px">신고자 전화번호</th>
+            <th style="width:90px;text-align:center">생성 이력</th>
+            <th style="width:110px;text-align:center">보고서</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="pager">
+        <span>1 / 139</span>
+        <div class="pager-pages">
+          <button class="pg disabled"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg></button>
+          <button class="pg disabled"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <button class="pg active">1</button>
+          <button class="pg">2</button>
+          <button class="pg">3</button>
+          <button class="pg">4</button>
+          <button class="pg">5</button>
+          <button class="pg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
+          <button class="pg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg></button>
+        </div>
+        <span>8개씩</span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ───────── 보고서 생성 모달 ───────── -->
+<div class="scrim" id="genScrim">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">보고서 생성</div>
+      <button class="modal-close" data-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="modal-body" id="genBody"></div>
+    <div class="modal-foot" id="genFoot"></div>
+  </div>
+</div>
+
+<!-- ───────── 생성 이력 모달 ───────── -->
+<div class="scrim" id="histScrim">
+  <div class="modal lg">
+    <div class="modal-head">
+      <div class="modal-title">보고서 생성 이력 조회</div>
+      <button class="modal-close" data-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="section-label">신고 정보</div>
+      <table class="info-table">
+        <tr><th>재해번호</th><td id="hi-no">ZQ1135729433</td><th>재난 종류</th><td id="hi-cat">화재</td></tr>
+        <tr><th>신고일시</th><td id="hi-time">2025-12-09 10:15:22</td><th>주소</th><td id="hi-addr">서울특별시 양천구 신월동 139-13 인근</td></tr>
+      </table>
+      <div class="section-label" style="margin-top:20px">생성 이력</div>
+      <div id="histBody"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close>닫기</button>
+      <button class="btn btn-primary" data-close>확인</button>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+/* ───── mock data ───── */
+const CATS = [
+  {k:'fire', label:'화재'},
+  {k:'emer', label:'구급'},
+  {k:'rescue', label:'구조'},
+];
+const ADDRS = [
+  '서울특별시 강남구 논현동 114-28','서울특별시 중구 예장동 산4-5','서울특별시 동작구 동작동 333 이수힐스',
+  '서울특별시 관악구 봉천동 1667-67','서울특별시 영등포구 여의도동 10','서울특별시 강남구 신사동 576',
+  '서울특별시 중구 신림동 844','서울특별시 양천구 신월동 139-13'
+];
+const REPORTS = [
+  '안심콜테스트','17층 63빌딩 52층 승강기 갇힘','압구정성인압구정성당 2층','남산타운, 부친 낙상, 의식호흡유지','청와대 화재'
+];
+const ROWS = Array.from({length:22},(_,i)=>{
+  const c = CATS[i%3];
+  const dt = `2025-12-${String(8 + (i%13)).padStart(2,'0')} ${String(9+(i%12)).padStart(2,'0')}:${String((i*7)%60).padStart(2,'0')}:${String((i*11)%60).padStart(2,'0')}`;
+  return {
+    no:'ZQ113'+(5729433+i),
+    time: dt,
+    op:'접수대 17',
+    cat:c,
+    addr:ADDRS[i%ADDRS.length],
+    desc:REPORTS[i%REPORTS.length],
+    phone:'010-0000-0000',
+    historyCount: (i%3===2 && i!==6) ? 0 : ((i%4)+1) // some have 0
+  };
+});
+// guarantee at least one with 0 visible early
+ROWS[6].historyCount = 0;
+
+/* ───── render rows ───── */
+const $rows = document.getElementById('rows');
+$rows.innerHTML = ROWS.map((r,i)=>`
+  <tr>
+    <td class="mono">${r.no}</td>
+    <td class="mono">${r.time}</td>
+    <td>${r.op}</td>
+    <td><span class="badge ${r.cat.k}">${r.cat.label}</span></td>
+    <td>${r.addr}</td>
+    <td>${r.desc}</td>
+    <td class="mono">${r.phone}</td>
+    <td style="text-align:center">
+      <button class="icon-btn" onclick="openHistory(${i})" title="생성 이력">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h2"/></svg>
+        ${r.historyCount>0?`<span class="dot">${r.historyCount}</span>`:''}
+      </button>
+    </td>
+    <td style="text-align:center">
+      <button class="btn btn-outline btn-sm" onclick="openGenerate(${i})">생성</button>
+    </td>
+  </tr>
+`).join('');
+
+/* ───── modals ───── */
+const genScrim = document.getElementById('genScrim');
+const histScrim = document.getElementById('histScrim');
+const genBody = document.getElementById('genBody');
+const genFoot = document.getElementById('genFoot');
+let genState = 'idle'; // idle | loading | done
+let currentRow = null;
+let timer = null;
+
+function openGenerate(i){
+  currentRow = ROWS[i];
+  setGenState('idle');
+  genScrim.classList.add('show');
+}
+function setGenState(s){
+  genState = s;
+  const r = currentRow;
+  if(s==='idle'){
+    genBody.innerHTML = `
+      <div class="section-label">신고 정보</div>
+      <div class="info-card">
+        <div class="info-row"><span class="k">재해번호</span><span class="v mono">${r.no}</span></div>
+        <div class="info-row"><span class="k">재난 종류</span><span class="v"><span class="badge ${r.cat.k}">${r.cat.label}</span></span></div>
+        <div class="info-row"><span class="k">주소</span><span class="v">${r.addr}</span></div>
+      </div>
+      <div class="form-row">
+        <div class="select" style="height:44px"><select><option>별지 서식(기본)</option><option>요약 서식</option><option>상세 서식</option></select></div>
+      </div>
+      <div class="form-row">
+        <input class="form-input" value="${r.desc} (1차).hwpx" />
+      </div>
+      <div class="form-help">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        동일한 파일명으로 생성 시, 파일명 뒤에 차수(2차, 3차)가 자동으로 추가됩니다.
+      </div>`;
+    genFoot.innerHTML = `
+      <button class="btn btn-outline" data-close>취소</button>
+      <button class="btn btn-primary" onclick="setGenState('loading')">생성</button>`;
+    bindClose();
+  }
+  if(s==='loading'){
+    genBody.innerHTML = `
+      <div class="section-label">신고 정보</div>
+      <div class="info-card">
+        <div class="info-row"><span class="k">재해번호</span><span class="v mono">${r.no}</span></div>
+        <div class="info-row"><span class="k">재난 종류</span><span class="v"><span class="badge ${r.cat.k}">${r.cat.label}</span></span></div>
+        <div class="info-row"><span class="k">주소</span><span class="v">${r.addr}</span></div>
+      </div>
+      <div class="loading-wrap">
+        <div class="spinner"></div>
+        <div class="loading-txt">보고서 생성 중...</div>
+      </div>`;
+    genFoot.innerHTML = `
+      <button class="btn btn-outline" disabled style="opacity:.5">취소</button>
+      <button class="btn btn-primary" disabled>생성중</button>`;
+    clearTimeout(timer);
+    timer = setTimeout(()=>setGenState('done'), 2200);
+  }
+  if(s==='done'){
+    genBody.innerHTML = `
+      <div class="section-label">신고 정보</div>
+      <div class="info-card">
+        <div class="info-row"><span class="k">재해번호</span><span class="v mono">${r.no}</span></div>
+        <div class="info-row"><span class="k">재난 종류</span><span class="v"><span class="badge ${r.cat.k}">${r.cat.label}</span></span></div>
+        <div class="info-row"><span class="k">주소</span><span class="v">${r.addr}</span></div>
+      </div>
+      <div class="form-row">
+        <input class="form-input" readonly value="${r.desc} (1차).hwpx" />
+      </div>
+      <div class="complete-msg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+        보고서 생성이 완료되었습니다.
+      </div>`;
+    genFoot.innerHTML = `
+      <button class="btn btn-outline" data-close>닫기</button>
+      <button class="btn btn-primary" onclick="downloadReport()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        보고서 다운로드
+      </button>`;
+    bindClose();
+    // bump history for that row
+    currentRow.historyCount = (currentRow.historyCount||0)+1;
+    renderRowDot();
+  }
+}
+function downloadReport(){
+  const blob = new Blob([`보고서: ${currentRow.no}\n재난: ${currentRow.cat.label}\n주소: ${currentRow.addr}\n신고: ${currentRow.desc}\n생성: ${new Date().toLocaleString('ko-KR')}`], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentRow.desc} (1차).txt`;
+  a.click();
+}
+function renderRowDot(){
+  // re-render rows lightly
+  const idx = ROWS.indexOf(currentRow);
+  const tr = $rows.children[idx];
+  if(!tr) return;
+  const cell = tr.children[7];
+  cell.innerHTML = `
+    <button class="icon-btn" onclick="openHistory(${idx})" title="생성 이력">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h2"/></svg>
+      ${currentRow.historyCount>0?`<span class="dot">${currentRow.historyCount}</span>`:''}
+    </button>`;
+}
+
+/* ───── history modal ───── */
+function openHistory(i){
+  const r = ROWS[i];
+  currentRow = r;
+  document.getElementById('hi-no').textContent = r.no;
+  document.getElementById('hi-cat').innerHTML = `<span class="badge ${r.cat.k}">${r.cat.label}</span>`;
+  document.getElementById('hi-time').textContent = r.time;
+  document.getElementById('hi-addr').textContent = r.addr;
+  const body = document.getElementById('histBody');
+  if(r.historyCount===0){
+    body.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        생성된 보고서가 없습니다
+      </div>`;
+  } else {
+    const rows = Array.from({length:r.historyCount},(_,k)=>`
+      <tr>
+        <td>${k+1}차</td>
+        <td>별지 서식(기본)</td>
+        <td class="mono">2025-12-${String(8+k).padStart(2,'0')} 09:00:11</td>
+        <td>03.17(월) 중구 필동 1가 화재 (${k+1}차).hwpx</td>
+        <td>홍길동</td>
+        <td style="text-align:center">
+          <button class="dl" title="다운로드"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg></button>
+        </td>
+      </tr>`).join('');
+    body.innerHTML = `
+      <table class="htable">
+        <thead><tr><th style="width:60px">차수</th><th style="width:140px">서식</th><th style="width:170px">생성일시</th><th>파일명</th><th style="width:90px">생성자</th><th style="width:80px;text-align:center">다운로드</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+  histScrim.classList.add('show');
+}
+
+/* ───── close handlers ───── */
+function bindClose(){
+  document.querySelectorAll('[data-close]').forEach(el=>{
+    el.onclick = ()=>{
+      genScrim.classList.remove('show');
+      histScrim.classList.remove('show');
+      clearTimeout(timer);
+    };
+  });
+}
+bindClose();
+[genScrim,histScrim].forEach(s=>s.addEventListener('click',e=>{ if(e.target===s){ s.classList.remove('show'); clearTimeout(timer); }}));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ genScrim.classList.remove('show'); histScrim.classList.remove('show'); clearTimeout(timer); }});
+
+/* ───── live clock ───── */
+setInterval(()=>{
+  const d = new Date();
+  const p = n=>String(n).padStart(2,'0');
+  document.getElementById('now').textContent = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} / ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+},1000);
+</script>
+</body>
+</html>
